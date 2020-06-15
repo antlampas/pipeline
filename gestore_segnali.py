@@ -57,8 +57,9 @@ class gestore_segnali(thread):
         pacchetto_segnale = self.coda_ipc.get()
         segnale,timestamp,mittente,destinatario =
                                                zip(pacchetto_segnale.split(":"))
-        if destinatario != str(type(self).__name__):
-            self.coda_ipc.put(pacchetto_segnale)
-        else:
+        if destinatario == str(type(self).__name__) or destinatario == "":
+            pacchetto_segnale = segnale + ":" + timestamp + ":" + mittente
             with self.lock_segnali:
-                pass
+                self.coda_segnali.put(pacchetto_segnale)
+        else:
+            self.coda_ipc.put(pacchetto_segnale)
