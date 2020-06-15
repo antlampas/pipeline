@@ -49,17 +49,27 @@ class gestore_segnali(thread):
                 with self.lock:
                     if not self.ipc.full():
                         self.coda_ipc.put(pacchetto_segnale)
+                    return
             else:
                 self.coda_segnali.put(pacchetto_segnale)
+                return
         else:
             self.coda_segnali.put(pacchetto_segnale)
+            return
     def ricevi_segnale(self):
-        pacchetto_segnale = self.coda_ipc.get()
-        segnale,timestamp,mittente,destinatario =
-                                               zip(pacchetto_segnale.split(":"))
+        pacchetto_segnale       = self.coda_ipc.get()
+        pacchetto_segnale_split = pacchetto_segnale.split(":")
+        if len(pacchetto_segnale_split)==4:
+            segnale,timestamp,mittente,destinatario = pacchetto_segnale_split
+        elif len(pacchetto_segnale_split)==3:
+            segnale,timestamp,mittente = pacchetto_segnale_split
+        else:
+            return
         if destinatario == str(type(self).__name__) or destinatario == "":
             pacchetto_segnale = segnale + ":" + timestamp + ":" + mittente
             with self.lock_segnali:
                 self.coda_segnali.put(pacchetto_segnale)
+            return
         else:
             self.coda_ipc.put(pacchetto_segnale)
+            return
