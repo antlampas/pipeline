@@ -2,9 +2,9 @@ from multiprocessing import Process
 
 class processo(Process):
     def __init__(self,coda_ipc,lock_ipc):
-        super(processo,self).__init__()
-        self.coda_ipc = coda_ipc
-        self.lock     = lock_ipc
+        super().__init__()
+        self.ipc = coda_ipc
+        self.lock_ipc = lock_ipc
     def idle(self):
         pass
     def avvia(self):

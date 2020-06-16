@@ -8,42 +8,47 @@ from time     import sleep
 
 class gestore_segnali(processo):
     def __init__(self,configurazione,coda_ipc,lock_ipc,coda_segnali,lock_segnali):
-        super(gestore_segnali,self).__init__(coda_ipc,lock_ipc)
-        self.ipc          = coda_ipc
-        self.lock_ipc     = lock_ipc
+        super().__init__(coda_ipc,lock_ipc)
         self.coda_segnali = coda_segnali
         self.lock_segnali = lock_segnali
     def run(self):
         self.idle()
     def idle(self):
-        pacchetto_segnale = ""
+        pacchetto_segnale    = ""
         segnale_spacchettato = []
-        segnale=timestamp=mittente=destinatario = ""
+        segnale = timestamp = mittente = destinatario = ""
         print(type(self).__name__ + " " + "idle")
         while True:
-            sleep(0.001)
             with self.lock_ipc:
                 if not self.ipc.empty():
                     pacchetto_segnale = self.ipc.get()
+            if pacchetto_segnale == "":
+                continue
             segnale_spacchettato[:] = pacchetto_segnale.split(":")
+            print(pacchetto_segnale)
             if len(segnale_spacchettato) == 4:
+                print(4)
+                print(segnale_spacchettato)
                 segnale,timestamp,mittente,destinatario = zip(segnale_spacchettato)
             elif len(segnale_spacchettato) == 3:
+                print(3)
+                print(segnale_spacchettato)
                 segnale,timestamp,mittente = zip(segnale_spacchettato)
-            print(segnale)
-            print(timestamp)
-            print(mittente)
-            print(destinatario)
-            if destinatario == str(type(self).__name__) or \
-               destinatario == "":
-                if segnale in vars():
-                    vars()[segnale]
-                    segnale_spacchettato[:] = []
-                    segnale=timestamp=mittente=destinatario = ""
-                elif segnale == "stop":
-                    break
+            if segnale != "":
+                print(segnale)
+                print(timestamp)
+                print(mittente)
+                print(destinatario)
+                if destinatario == str(type(self).__name__) or \
+                   destinatario == "":
+                    if segnale in vars():
+                        vars()[segnale]
+                        segnale_spacchettato[:] = []
+                        segnale = timestamp = mittente = destinatario = ""
+                    elif segnale == "stop":
+                        break
+            sleep(1)
     def avvia(self):
-        sleep(0.001)
         print(type(self).__name__ + " " + "avviato")
         while True:
             with self.lock_ipc:
@@ -52,6 +57,7 @@ class gestore_segnali(processo):
             with self.lock_segnali:
                 if not self.coda_segnali.full():
                     self.invia_segnale()
+            sleep(1)
     def invia_segnale(self):
         pacchetto_segnale    = self.coda_segnali.get()
         segnale_spacchettato = zip(pacchetto_segnale.split(":"))
