@@ -23,9 +23,10 @@ class gestore_segnali(processo):
                 if not self.ipc.empty():
                     pacchetto_segnale = self.ipc.get()
             if pacchetto_segnale == "":
+                sleep(1)
                 continue
             segnale_spacchettato[:] = pacchetto_segnale.split(":")
-            print(pacchetto_segnale)
+            print(segnale_spacchettato)
             if len(segnale_spacchettato) == 4:
                 print(4)
                 print(segnale_spacchettato)
@@ -55,7 +56,7 @@ class gestore_segnali(processo):
                 if not self.coda_ipc.empty():
                     self.ricevi_segnale()
             with self.lock_segnali:
-                if not self.coda_segnali.full():
+                if not self.coda_segnali.empty():
                     self.invia_segnale()
             sleep(1)
     def invia_segnale(self):
@@ -70,13 +71,13 @@ class gestore_segnali(processo):
                                     str(destinatario)
                 with self.lock:
                     if not self.ipc.full():
-                        self.coda_ipc.put(pacchetto_segnale)
+                        self.coda_ipc.put_nowait(pacchetto_segnale)
                     return
             else:
-                self.coda_segnali.put(pacchetto_segnale)
+                self.coda_segnali.put_nowait(pacchetto_segnale)
                 return
         else:
-            self.coda_segnali.put(pacchetto_segnale)
+            self.coda_segnali.put_nowait(pacchetto_segnale)
             return
     def ricevi_segnale(self):
         pacchetto_segnale       = self.coda_ipc.get()
@@ -90,8 +91,8 @@ class gestore_segnali(processo):
         if destinatario == str(type(self).__name__) or destinatario == "":
             pacchetto_segnale = segnale + ":" + timestamp + ":" + mittente
             with self.lock_segnali:
-                self.coda_segnali.put(pacchetto_segnale)
+                self.coda_segnali.put_nowait(pacchetto_segnale)
             return
         else:
-            self.coda_ipc.put(pacchetto_segnale)
+            self.coda_ipc.put_nowait(pacchetto_segnale)
             return
