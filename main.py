@@ -10,11 +10,10 @@ o = oggetto(configurazione,ipc,lock_ipc)
 
 o.start()
 while True:
-    comando = input("Invia comando: ")
-    pacchetto_segnale = comando + ":" + str(time()) + ":" + __name__ + ":"
-    # print(pacchetto_segnale)
-    # print(type(pacchetto_segnale))
+    comando      = input("Invia comando: ")
+    destinatario = input("A: ")
+    pacchetto_segnale = comando + ":" + str(time()) + ":" + __name__ + ":" + destinatario
     with lock_ipc:
         ipc.put_nowait(pacchetto_segnale)
-    sleep(1)
+    sleep(0.001)
 o.join()
