@@ -34,4 +34,6 @@ class oggetto(processo):
                 with self.lock_segnali_uscita:
                     self.coda_segnali_uscita.put_nowait(uscita)
                 return int(-1)
+            elif segnale in dir(self) and callable(getattr(self,segnale)):
+                q = getattr(self,segnale)()
             sleep(0.01)
