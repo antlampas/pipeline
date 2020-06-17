@@ -52,8 +52,6 @@ class gestore_segnali(processo):
                         if destinatario == type(self).__name__ or destinatario == "":
                             if segnale in dir(self) and callable(getattr(self,segnale)):
                                 q = getattr(self,segnale)()
-                                # if q == int(-1):
-                                #     break
                                 segnale_spacchettato[:] = []
                                 segnale = timestamp = mittente = destinatario = ""
                             elif segnale == "stop":
@@ -87,7 +85,6 @@ class gestore_segnali(processo):
         if self.stop:
             return int(-1)
     def invia_segnale(self):
-        #print(type(self).__name__ + " " + "invia segnale")
         pacchetto_segnale = ""
         segnale           = ""
         destinatario      = ""
@@ -123,7 +120,6 @@ class gestore_segnali(processo):
             segnale_spacchettato[:] = []
             return 0
     def ricevi_segnale(self):
-        #print(type(self).__name__ + " " + "ricevi segnale")
         pacchetto_segnale = segnale = timestamp = mittente = destinatario = ""
         segnale_spacchettato    = []
         pacchetto_segnale       = self.ipc.get_nowait()

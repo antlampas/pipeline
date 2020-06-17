@@ -12,8 +12,6 @@ class oggetto(processo):
         self.coda_segnali_uscita  = Queue()
         self.lock_segnali_entrata = Lock()
         self.lock_segnali_uscita  = Lock()
-        self.ipc                  = coda_ipc
-        self.lock_ipc             = lock_ipc
         self.gestore_segnali      = gestore_segnali(configurazione,
                                                     type(self).__name__,
                                                     coda_ipc,
@@ -26,8 +24,7 @@ class oggetto(processo):
     def run(self):
         self.idle()
     def idle(self):
-        # print(type(self).__name__ + " " + "idle")
-        segnale = [] # [segnale , mittente]
+        segnale= ""
         while True:
             with self.lock_segnali_entrata:
                 if not self.coda_segnali_entrata.empty():
@@ -36,9 +33,5 @@ class oggetto(processo):
                 uscita = ["stop","gestore_segnali"]
                 with self.lock_segnali_uscita:
                     self.coda_segnali_uscita.put_nowait(uscita)
-                # with self.lock_ipc:
-                #     pacchetto_segnale = "terminato:" + str(time()) + ":" + type(self).__name__ + ":"
-                #     self.ipc.put_nowait(pacchetto_segnale)
                 return int(-1)
-            segnale = []
             sleep(0.01)
