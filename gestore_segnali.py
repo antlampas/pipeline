@@ -28,10 +28,10 @@ class gestore_segnali(processo):
             self.idle()
             if self.stop: return int(-1)
     def idle(self):
+        print(type(self).__name__ + " " + "idle")
         pacchetto_segnale    = ""
         segnale_spacchettato = []
         segnale = timestamp = mittente = destinatario = ""
-        #print(type(self).__name__ + " " + "idle")
         while True:
             if not self.stop:
                 with self.lock_ipc:
@@ -46,16 +46,18 @@ class gestore_segnali(processo):
                         segnale,timestamp,mittente,destinatario = segnale_spacchettato
                     elif len(segnale_spacchettato) == 3:
                         segnale,timestamp,mittente = segnale_spacchettato
+                    else:
+                        continue
                     if segnale != "":
-                        if destinatario == self.padre or destinatario == "":
-                            if segnale in dir(self) and \
-                                                    callable(getattr(self,segnale)):
+                        if destinatario == type(self).__name__ or destinatario == "":
+                            if segnale in dir(self) and callable(getattr(self,segnale)):
                                 q = getattr(self,segnale)()
+                                # if q == int(-1):
+                                #     break
                                 segnale_spacchettato[:] = []
                                 segnale = timestamp = mittente = destinatario = ""
                             elif segnale == "stop":
-                                with self.lock_segnali_entrata:
-                                    self.coda_segnali_entrata.put_nowait(segnale_spacchettato)
+                                self.stop = int(1)
                                 break
                     segnale                 = ""
                     timestamp               = ""
@@ -65,8 +67,11 @@ class gestore_segnali(processo):
                     segnale_spacchettato[:] = []
             else:
                 break
+        with self.lock_ipc:
+            pacchetto_segnale = "terminato:" + str(time()) + ":" + type(self).__name__ + ":"
+            self.ipc.put_nowait(pacchetto_segnale)
     def avvia(self):
-        #print(type(self).__name__ + " " + "avviato")
+        print(type(self).__name__ + " " + "avviato")
         i = r = 0
         while True:
             with self.lock_ipc:
@@ -77,6 +82,7 @@ class gestore_segnali(processo):
                     i = self.invia_segnale()
             if i == int(-1):
                 self.stop = 1
+                break
             sleep(0.001)
         if self.stop:
             return int(-1)

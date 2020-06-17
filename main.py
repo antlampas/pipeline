@@ -10,7 +10,6 @@ o = oggetto(configurazione,ipc,lock_ipc)
 
 o.start()
 while True:
-    termina           = 0
     comando           = input("Invia comando: ")
     destinatario      = input("A: ")
     pacchetto_segnale = comando + ":" + str(time()) + ":" + __name__ + ":" + destinatario
@@ -21,7 +20,7 @@ while True:
         if not ipc.empty():
             pacchetto_segnale    = ipc.get_nowait()
             segnale_spacchettato = pacchetto_segnale.split(":")
-            print(segnale_spacchettato[0])
+            print(segnale_spacchettato)
             if segnale_spacchettato[0] == "terminato":
                 termina = 1
             else:

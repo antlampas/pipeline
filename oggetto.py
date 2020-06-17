@@ -12,6 +12,8 @@ class oggetto(processo):
         self.coda_segnali_uscita  = Queue()
         self.lock_segnali_entrata = Lock()
         self.lock_segnali_uscita  = Lock()
+        self.ipc                  = coda_ipc
+        self.lock_ipc             = lock_ipc
         self.gestore_segnali      = gestore_segnali(configurazione,
                                                     type(self).__name__,
                                                     coda_ipc,
@@ -34,13 +36,9 @@ class oggetto(processo):
                 uscita = ["stop","gestore_segnali"]
                 with self.lock_segnali_uscita:
                     self.coda_segnali_uscita.put_nowait(uscita)
-                #self.gestore_segnali.join()
-                with self.lock_ipc:
-                    pacchetto_segnale = "terminato:" + str(time()) + ":" + type(self).__name__ + ":"
-                    self.ipc.put_nowait(pacchetto_segnale)
-                segnale = []
+                # with self.lock_ipc:
+                #     pacchetto_segnale = "terminato:" + str(time()) + ":" + type(self).__name__ + ":"
+                #     self.ipc.put_nowait(pacchetto_segnale)
                 return int(-1)
-            else:
-                segnale = []
             segnale = []
-            sleep(1)
+            sleep(0.01)
