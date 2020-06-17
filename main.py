@@ -10,3 +10,5 @@ with open(file_configurazione) as f:
     configurazione = f.readlines()
 
 configurazione = [x.strip() for x in configurazione]
+
+######################## Codice Personale qui ##################################
