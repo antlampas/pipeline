@@ -45,8 +45,8 @@ class gestore_pipeline(oggetto):
                 self.gestore_segnali_operazioni[valore]      = gestore_segnali(
                                    lista_segnali,
                                    type(self).__name__,
-                                   coda_ipc,
-                                   lock_ipc,
+                                   self.ipc_operazioni[valore],
+                                   self.lock_ipc_operazioni[valore],
                                    self.coda_segnali_entrata_operazioni[valore],
                                    self.lock_segnali_entrata_operazioni[valore],
                                    self.coda_segnali_uscita_operazioni[valore],
@@ -61,7 +61,48 @@ class gestore_pipeline(oggetto):
         for nome,operazione in self.operazioni.items():
             operazione.start()
     def idle(self):
+        print(type(self).__name__ + " idle")
+        with self.lock_ipc:
+            self.ipc.put_nowait("idle:"+str(time()) + ":" + str(type(self).__name__))
         while True:
+            for (oggetto,lock_entrata),                           \
+                (oggetto,lock_uscita),                            \
+                (oggetto,coda_segnali_entrata),                   \
+                (oggetto,coda_segnali_uscita)                     \
+                in                                                \
+                zip(self.lock_segnali_entrata_operazioni.items(), \
+                self.lock_segnali_uscita_operazioni.items(),      \
+                self.coda_segnali_entrata_operazioni.items(),     \
+                self.coda_segnali_uscita_operazioni.items()):
+                segnale = ""
+                with lock_entrata:
+                    if not coda_segnali_entrata.empty():
+                        segnale = coda_segnali_entrata.get_nowait()
+                if segnale == "esci":
+                    uscita = ["stop","gestore_segnali"]
+                    with lock_uscita:
+                        coda_segnali_uscita.put_nowait(uscita)
+                    return int(-1)
+                if segnale == "avvia":
+                    for lock,ipc in self.lock_ipc,self.ipc:
+                        with lock:
+                            ipc.put_nowait("avvia:"+str(time()) + ":" + \
+                                                       str(type(self).__name__))
+            sleep(0.01)
+    def avvia(self):
+        print(type(self).__name__ + " avviato")
+        while True:
+            segnale = ""
+            with self.lock_segnali_entrata:
+                if not self.coda_segnali_entrata.empty():
+                    segnale = self.coda_segnali_entrata.get_nowait()
+            if segnale == "stop":
+                uscita = ["stop","gestore_segnali"]
+                with self.lock_segnali_uscita:
+                    self.coda_segnali_uscita.put_nowait(uscita)
+                return int(-1)
+            else:
+                pass
             for (oggetto,lock_entrata),         \
                 (oggetto,lock_uscita),          \
                 (oggetto,coda_segnali_entrata), \
@@ -86,16 +127,3 @@ class gestore_pipeline(oggetto):
                             ipc.put_nowait("avvia:"+str(time()) + ":" + \
                                                        str(type(self).__name__))
             sleep(0.01)
-    def avvia(self):
-        while True:
-            segnale = ""
-            with self.lock_segnali_entrata:
-                if not self.coda_segnali_entrata.empty():
-                    segnale = self.coda_segnali_entrata.get_nowait()
-            if segnale == "stop":
-                uscita = ["stop","gestore_segnali"]
-                with self.lock_segnali_uscita:
-                    self.coda_segnali_uscita.put_nowait(uscita)
-                return int(-1)
-            else:
-                pass
