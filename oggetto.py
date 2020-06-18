@@ -6,13 +6,13 @@ from gestore_segnali import gestore_segnali
 from time            import sleep,time
 
 class oggetto(processo):
-    def __init__(self,configurazione,coda_ipc,lock_ipc):
+    def __init__(self,lista_segnali,coda_ipc,lock_ipc):
         super().__init__(coda_ipc,lock_ipc)
         self.coda_segnali_entrata = Queue()
         self.coda_segnali_uscita  = Queue()
         self.lock_segnali_entrata = Lock()
         self.lock_segnali_uscita  = Lock()
-        self.gestore_segnali      = gestore_segnali(configurazione,
+        self.gestore_segnali      = gestore_segnali(lista_segnali,
                                                     type(self).__name__,
                                                     coda_ipc,
                                                     lock_ipc,

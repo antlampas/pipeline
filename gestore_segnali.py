@@ -13,7 +13,7 @@ class gestore_segnali(processo):
     È il componente addetto alla gestione delle comunicazioni del processo
     padre con altri processi.
     """
-    def __init__(self,configurazione,padre,coda_ipc,lock_ipc,coda_segnali_entrata,lock_segnali_entrata,coda_segnali_uscita,lock_segnali_uscita):
+    def __init__(self,lista_segnali,padre,coda_ipc,lock_ipc,coda_segnali_entrata,lock_segnali_entrata,coda_segnali_uscita,lock_segnali_uscita):
         ################## Inizializzazione Gestore Segnali ####################
         super().__init__(coda_ipc,lock_ipc)
         self.coda_segnali_entrata = coda_segnali_entrata
@@ -21,6 +21,7 @@ class gestore_segnali(processo):
         self.coda_segnali_uscita  = coda_segnali_uscita
         self.lock_segnali_uscita  = lock_segnali_uscita
         self.padre                = str(padre)
+        self.lista_segnali        = lista_segnali
         self.stop                 = 0
         ############### Fine Inizializzazione Gestore Segnali ##################
     def run(self):
