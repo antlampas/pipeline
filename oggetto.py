@@ -3,6 +3,12 @@ from gestore_segnali import gestore_segnali
 from time            import sleep,time
 
 class oggetto(Process):
+    """Oggetto
+
+    Classe base per tutti gli oggetti del framework. Ha le caratterisiche di
+    base per la gestione del processo associato ed imposta ed avvia il Gestore
+    Segnali dell'oggetto
+    """
     def __init__(self,
                  coda_ipc_entrata,
                  lock_ipc_entrata,

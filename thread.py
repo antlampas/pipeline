@@ -1,10 +1,12 @@
 from threading import Thread,Lock
 
 class thread(Thread):
+    """Interfaccia Thread
+
+    Interfaccia per quando si deve creare un thread
+    """
     def __init__(self,coda_ipc,lock_ipc):
-        super(thread,self).__init__()
-        self.coda_ipc = coda_ipc
-        self.lock_ipc = lock_ipc
+        super().__init__()
     def idle(self):
         pass
     def avvia(self):

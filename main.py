@@ -1,14 +1,17 @@
 from multiprocessing  import Process,Lock,Queue
 from time             import time,sleep
 from random           import uniform
+from logging          import info,basicConfig
+
 from oggetto          import oggetto
 from gestore_pipeline import gestore_pipeline
 
-ipc_entrata      = Queue()
-lock_ipc_entrata = Lock()
-ipc_uscita       = Queue()
-lock_ipc_uscita  = Lock()
+ipc_entrata         = Queue()
+lock_ipc_entrata    = Lock()
+ipc_uscita          = Queue()
+lock_ipc_uscita     = Lock()
 file_configurazione = "pipeline.conf"
+file_log            = "pipeline.log"
 
 ######################## Codice Personale qui ##################################
 p = gestore_pipeline(file_configurazione,
@@ -18,8 +21,8 @@ p = gestore_pipeline(file_configurazione,
                      lock_ipc_entrata)
 p.start()
 
-with lock_ipc_uscita:
-    ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + str(__name__) + ":")
+# with lock_ipc_uscita:
+#     ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + str(__name__) + ":")
 
 while True:
     pacchetto_segnale = ""

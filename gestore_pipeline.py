@@ -1,12 +1,19 @@
-from multiprocessing      import Process,Queue,Lock
-from time                 import time,sleep
-from random               import uniform
-
+from multiprocessing import Process,Queue,Lock
+from time            import time,sleep
+from random          import uniform
+from logging         import info
 #Framework
-from oggetto              import oggetto
-from gestore_segnali      import gestore_segnali
+from oggetto         import oggetto
+from gestore_segnali import gestore_segnali
 
 class gestore_pipeline(oggetto):
+    """Gestore Pipeline
+
+    Gestisce la coda delle operazioni che il programma deve eseguire.
+    Fa da arbitro nelle comunicazioni tra le operazioni e tra le operazioni e
+    il Gestore Pipeline (sé stesso) ed orchestra le operazioni.
+    Si assicura che le operazioni vengano eseguite nell'ordine stabilito
+    """
     def __init__(self,
                  file_configurazione,
                  coda_ipc_entrata,
@@ -134,7 +141,7 @@ class gestore_pipeline(oggetto):
         self.stop = 0
         ################ Fine inizializza le impostazioni ######################
     def idle(self):
-        print(type(self).__name__ + " idle")
+        info(type(self).__name__ + " idle")
         # Attendi il segnale di avvio
         while True:
             segnale = ""
@@ -165,7 +172,7 @@ class gestore_pipeline(oggetto):
                     getattr(self,segnale)()
             ############## Fine ricezione messaggi dall'esterno ################
     def avvia(self):
-        print(type(self).__name__ + " avviato")
+        info(type(self).__name__ + " avviato")
         while True:
             segnale = ""
             ################# Ricevi messaggi dall'esterno #####################
