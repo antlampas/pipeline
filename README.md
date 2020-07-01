@@ -1,3 +1,3 @@
 # pipeline
 
-Pipeline Framework
+Pipeline Framework by Francesco Antonetti Lamorgese
