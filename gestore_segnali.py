@@ -148,15 +148,25 @@ class gestore_segnali(Process):
             self.ipc_uscita.put_nowait("terminato:" + str(time()) + ":" + \
                                                       type(self).__name__ + ":")
     def avvia(self):
+        """Avvia
+
+        Ciclo principale del Gestore Segnali, una volta avviato.
+        Controlla continuamente la Coda IPC per i segnali in entrata e la Coda
+        Segnali Uscita per i segnali pronti ad essere inviati
+        """
         info(type(self).__name__ + " " + self.padre + " " + "avviato")
         i = r = 0
         while True:
+            # Controlla segnali in arrivo
             with self.lock_ipc_entrata:
                 if not self.ipc_entrata.empty():
                     r = self.ricevi_segnale()
+            # Controlla segnali in entrata
             with self.lock_segnali_uscita:
                 if not self.coda_segnali_uscita.empty():
                     i = self.invia_segnale()
+            # -1 significa "Richiesta di stop", quindi imposta il flag di stop
+            # ed esci dal ciclo
             if i == int(-1):
                 self.stop = 1
                 break
@@ -167,7 +177,9 @@ class gestore_segnali(Process):
         info(self.padre + " Invia segnale")
         pacchetto_segnale = segnale = destinatario = ""
         segnale_spacchettato    = []
+        # Preleva il segnale da inviare dalla Coda Segnali in Uscita
         segnale_spacchettato[:] = self.coda_segnali_uscita.get_nowait()
+        # Controlla che il segnale sia ben formato
         if segnale_spacchettato:
             if len(segnale_spacchettato) == 2:
                 segnale,destinatario = segnale_spacchettato
