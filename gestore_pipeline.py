@@ -212,7 +212,12 @@ class gestore_pipeline(oggetto):
                                                coda_segnali_entrata.get_nowait()
                 # Se il destinatario è il Gestore Pipeline
                 if destinazione == type(self).__name__:
-                    # Fa qualcosa
+                    if segnale=="stop":
+                        for operazione in self.operazioni:
+                            with self.lock_segnali_uscita_operazioni[operazione]:
+                                self.coda_segnali_uscita_operazioni[operazione].put_nowait([segnale,destinazione])
+                            operazione.join()
+                        exit(0)
                     pass
                 # Se il destinatario è una delle altre operazioni
                 elif destinazione in self.operazioni:
