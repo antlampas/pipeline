@@ -10,7 +10,6 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 from multiprocessing import Process
 # from Threading       import Thread
 from time            import sleep,time
-from random          import uniform
 from logging         import info
 
 class gestore_segnali(Process):
@@ -66,6 +65,18 @@ class gestore_segnali(Process):
         self.lock_segnali_uscita  = lock_segnali_uscita
         # Nome dell'oggetto padre
         self.padre                = str(padre)
+        self.segnale_uscita = {
+                                "segnale":      "",
+                                "mittente":     "",
+                                "destinatario": "",
+                                "timestamp":    0
+                               }
+        self.segnale_entrata = {
+                                "segnale":      "",
+                                "mittente":     "",
+                                "destinatario": "",
+                                "timestamp":    0
+                               }
         # Flag per la richiesta di stop
         self.stop                 = 0
         ############### Fine Inizializzazione Gestore Segnali ##################
@@ -91,7 +102,10 @@ class gestore_segnali(Process):
         segnale_spacchettato = []
         # Semplicemente quattro variabili per "facilitare" la gestione del
         # segnale
-        segnale = timestamp = mittente = destinatario = ""
+        self.segnale_entrata["segnale"]      = \
+        self.segnale_entrata["mittente"]     = \
+        self.segnale_entrata["destinatario"] = ""
+        self.segnale_entrata["timestamp"]    = 0
         while True:
             # Se l'operatore non ha richiesto lo stop
             if not self.stop:
@@ -110,45 +124,55 @@ class gestore_segnali(Process):
                     # Se il segnale è formato da 4 parti, vuol dire che è stato
                     # dìspecificato un destinatario.
                     if len(segnale_spacchettato) == 4:
-                        segnale,timestamp,mittente,destinatario = \
-                                                            segnale_spacchettato
+                        self.segnale_entrata["segnale"],
+                        self.segnale_entrata["timestamp"],
+                        self.segnale_entrata["mittente"],
+                        self.segnale_entrata["destinatario"] = \
+                        segnale_spacchettato
                     # Se il segnale è formato da 3 parti, vuol dir che non è
                     # stato specificato nessun destinatario (segnale in
                     # broadcast)
                     elif len(segnale_spacchettato) == 3:
-                        segnale,timestamp,mittente = segnale_spacchettato
+                        self.segnale_entrata["segnale"],
+                        self.segnale_entrata["timestamp"],
+                        self.segnale_entrata["mittente"] = \
+                        segnale_spacchettato
                     # Altrimenti il segnale è mal formato. Scartalo e passa al
                     # ciclo successivo
                     else:
                         continue
                     # Se la "parte segnale" del segnale sia stata definita
-                    if segnale != "":
+                    if self.segnale_entrata["segnale"] != "":
                         # Se il segnale è indirizzato al Gestore Segnale
-                        if destinatario == type(self).__name__ or destinatario \
-                                                                          == "":
+                        if self.segnale_entrata["destinatario"] \
+                                          == type(self).__name__ \
+                           or self.segnale_entrata["destinatario"] == "":
                             # Esegui il segnale se è tra i segnali che il
                             # Gestore Segnali può interpretare
-                            if segnale in dir(self):
+                            if self.segnale_entrata["segnale"] in dir(self):
                                 # Esegui l'operazione
-                                getattr(self,segnale)()
+                                getattr(self,self.segnale_entrata["segnale"])()
                                 # Ripulisci il Segnale Spacchettato e le
                                 # variabili d'appoggio
-                                segnale_spacchettato[:] = []
-                                segnale = timestamp = mittente = destinatario \
-                                                                            = ""
+                                segnale_spacchettato[:]              = []
+                                self.segnale_entrata["segnale"]      = \
+                                self.segnale_entrata["mittente"]     = \
+                                self.segnale_entrata["destinatario"] = ""
+                                self.segnale_entrata["timestamp"]    = 0
                             # Se il segnale è la richiesta di stop
-                            elif segnale == "stop":
+                            elif self.segnale_entrata["segnale"] == "stop":
                                 # Imposta il flag di stop ed esci dal ciclo
                                 self.stop = int(1)
                                 break
                     # Ripulisci il Segnale Spacchettato e le variabili
                     # d'appoggio
-                    segnale_spacchettato[:] = []
-                    segnale                 = ""
-                    timestamp               = ""
-                    mittente                = ""
-                    destinatario            = ""
-                    pacchetto_segnale       = ""
+                    pacchetto_segnale                    = ""
+                    segnale_spacchettato[:]              = []
+                    self.segnale_entrata["segnale"]      = ""
+                    self.segnale_entrata["timestamp"]    = 0
+                    self.segnale_entrata["mittente"]     = ""
+                    self.segnale_entrata["destinatario"] = ""
+
             # Se l'operatore ha richiesto lo stop, esci dal ciclo
             else:
                 break
@@ -185,32 +209,33 @@ class gestore_segnali(Process):
     def invia_segnale(self):
         info(self.padre + " Invia segnale")
         pacchetto_segnale = segnale = destinatario = ""
-        segnale_spacchettato    = []
+        segnale_spacchettato = []
         # Preleva il segnale da inviare dalla Coda Segnali in Uscita
         segnale_spacchettato[:] = self.coda_segnali_uscita.get_nowait()
         # Controlla che il segnale sia ben formato
         if segnale_spacchettato:
             if len(segnale_spacchettato) == 2:
-                segnale,destinatario = segnale_spacchettato
+                self.segnale_uscita["segnale"],
+                self.segnale_uscita["destinatario"] = segnale_spacchettato
                 if segnale == "" and destinatario == "":
                     segnale_spacchettato[:] = []
                     return 1
-                elif destinatario == str(type(self).__name__):
-                    if segnale == "stop":
+                elif self.segnale_uscita["destinatario"] == \
+                     str(type(self).__name__):
+                    if self.segnale_uscita["segnale"] == "stop":
                         return int(-1)
                     else:
                         pacchetto_segnale       = ""
                         segnale_spacchettato[:] = []
                         return 1
-                elif destinatario == self.padre:
+                elif self.segnale_uscita["destinatario"] == self.padre:
                     pacchetto_segnale       = ""
                     segnale_spacchettato[:] = []
                     return 1
                 else:
-                    pacchetto_segnale = str(segnale)      + ":" + \
-                                        str(time())       + ":" + \
-                                        self.padre        + ":" + \
-                                        str(destinatario)
+                    pacchetto_segnale = str(self.segnale_uscita["segnale"]) \
+                     + ":" + str(time()) + ":" + self.padre + ":" + \
+                     str(destinatario)
                     with self.lock_ipc_uscita:
                         if not self.ipc_uscita.full():
                             self.ipc_uscita.put_nowait(pacchetto_segnale)
@@ -220,21 +245,36 @@ class gestore_segnali(Process):
                 return 0
     def ricevi_segnale(self):
         info(self.padre + " Ricevi segnale")
-        pacchetto_segnale = segnale = timestamp = mittente = destinatario = ""
-        segnale_spacchettato    = []
-        pacchetto_segnale       = self.ipc_entrata.get_nowait()
+        pacchetto_segnale = \
+            self.segnale_entrata["segnale"] = \
+            self.segnale_entrata["timestamp"] = \
+            self.segnale_entrata["mittente"] = \
+            self.segnale_entrata["destinatario"]
+        segnale_spacchettato = []
+        with self.lock_ipc_entrata:
+            pacchetto_segnale = self.ipc_entrata.get_nowait()
         segnale_spacchettato[:] = pacchetto_segnale.split(":")
         if segnale_spacchettato:
-            if   len(segnale_spacchettato) == 4:
-                segnale,timestamp,mittente,destinatario = segnale_spacchettato
+            if len(segnale_spacchettato) == 4:
+                self.segnale_entrata["segnale"],   \
+                 self.segnale_entrata["timestamp"], \
+                 self.segnale_entrata["mittente"],  \
+                 self.segnale_entrata["destinatario"] = segnale_spacchettato
             elif len(segnale_spacchettato) == 3:
-                segnale,timestamp,mittente              = segnale_spacchettato
+                self.segnale_entrata["segnale"],   \
+                 self.segnale_entrata["timestamp"], \
+                 self.segnale_entrata["mittente"] = segnale_spacchettato
             else:
                 return 1
-            if destinatario == self.padre or destinatario == "":
+            if self.segnale_entrata["destinatario"] == self.padre or \
+               self.segnale_entrata["destinatario"] == "":
                 with self.lock_segnali_entrata:
                     if not self.coda_segnali_entrata.full():
-                        self.coda_segnali_entrata.put_nowait(segnale)
+                        self.coda_segnali_entrata.put_nowait(
+                            [self.segnale_entrata["segnale"],
+                             self.segnale_entrata["mittente"],
+                             self.segnale_entrata["destinatario"],
+                             self.segnale_entrata["timestamp"]])
                 return 1
             else:
                 return 0
