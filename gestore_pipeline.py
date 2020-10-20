@@ -9,7 +9,6 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 from multiprocessing import Queue,Lock
 from time            import time,sleep
-from random          import uniform
 from logging         import info
 #Framework
 from oggetto         import oggetto
@@ -38,7 +37,6 @@ class gestore_pipeline(oggetto):
         configurazione       = []
         lista_configurazione = []
         impostazioni         = []
-        lista_segnali        = []
 
         # Leggi le impostazioni dal file configurazione e mettile in una lista
         with open(file_configurazione) as f:
@@ -56,6 +54,8 @@ class gestore_pipeline(oggetto):
 
         # TODO: controlla le impostazioni già scritte e inizializza le
         #       impostazioni mancanti
+        self.lista_segnali                   = []
+
         # Dizionario con le operazioni da eseguire nell'ordine di esecuzione
         self.operazioni                      = {} # "nome": operazione
         # Dizionario con le code per le comunicazioni tra il Gestore Pipeline e
@@ -165,7 +165,7 @@ class gestore_pipeline(oggetto):
             # Se non hai ricevuto nessun segnale
             if segnale[0] == "":
                 # Non fare niente e comincia direttamente il prossimo ciclo
-                sleep(uniform(0.001,0.200))
+                sleep(0.01)
                 continue
             # Se hai ricevuto il segnale di stop
             elif segnale[0] == "stop":
