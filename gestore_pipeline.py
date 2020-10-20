@@ -7,7 +7,7 @@ http://creativecommons.org/licenses/by/4.0/ or send a letter to Creative
 Commons, PO Box 1866, Mountain View, CA 94042, USA.
 """
 
-from multiprocessing import Process,Queue,Lock
+from multiprocessing import Queue,Lock
 from time            import time,sleep
 from random          import uniform
 from logging         import info
@@ -88,6 +88,12 @@ class gestore_pipeline(oggetto):
         # Per ogni operazione della pipeline, il Gestore Pipeline si crea un
         # Gestore Segnali per la comunicazione con quella operazione
         self.gestore_segnali_operazioni      = {}
+
+        self.segnale_entrata                 = []
+        self.segnale_uscita                  = []
+
+        self.segnali_entrata_operazioni      = []
+        self.segnali_uscita_operazioni       = []
 
         # Preleva le impostazioni del Gestore Pipeline. Le impostazioni sono:
         # -) Operazione: il nome dell'operazione da aggiungere alla pipeline
@@ -203,10 +209,10 @@ class gestore_pipeline(oggetto):
             ############## Fine ricezione messaggi dall'esterno ################
             ########## Comunicazione con le operazioni della pipeline ##########
             # Per ogni operazione
-            for (oggetto,lock_entrata),                           \
-                (oggetto,lock_uscita),                            \
-                (oggetto,coda_segnali_entrata),                   \
-                (oggetto,coda_segnali_uscita)                     \
+            for (ogg,lock_entrata),                               \
+                (ogg,lock_uscita),                                \
+                (ogg,coda_segnali_entrata),                       \
+                (ogg,coda_segnali_uscita)                         \
                 in                                                \
                 zip(self.lock_segnali_entrata_operazioni.items(), \
                 self.lock_segnali_uscita_operazioni.items(),      \
@@ -237,7 +243,7 @@ class gestore_pipeline(oggetto):
                 elif destinazione == "":
                     # Inoltra il segnale a tutte le altre operazioni
                     for operazione in self.operazioni:
-                        if operazione == oggetto:
+                        if operazione == ogg:
                             continue
                         else:
                             with self.lock_segnali_uscita_operazioni[operazione]:

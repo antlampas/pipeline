@@ -65,18 +65,18 @@ class gestore_segnali(Process):
         self.lock_segnali_uscita  = lock_segnali_uscita
         # Nome dell'oggetto padre
         self.padre                = str(padre)
-        self.segnale_uscita = {
-                                "segnale":      "",
-                                "mittente":     "",
-                                "destinatario": "",
-                                "timestamp":    0
-                               }
-        self.segnale_entrata = {
-                                "segnale":      "",
-                                "mittente":     "",
-                                "destinatario": "",
-                                "timestamp":    0
-                               }
+        self.segnale_uscita       = {
+                                     "segnale":      "",
+                                     "mittente":     "",
+                                     "destinatario": "",
+                                     "timestamp":    0
+                                    }
+        self.segnale_entrata      = {
+                                     "segnale":      "",
+                                     "mittente":     "",
+                                     "destinatario": "",
+                                     "timestamp":    0
+                                    }
         # Flag per la richiesta di stop
         self.stop                 = 0
         ############### Fine Inizializzazione Gestore Segnali ##################
@@ -188,12 +188,14 @@ class gestore_segnali(Process):
         Segnali Uscita per i segnali pronti ad essere inviati
         """
         info(type(self).__name__ + " " + self.padre + " " + "avviato")
-        i = r = 0
+        #i = r = 0
+        i = 0
         while True:
             # Controlla segnali in arrivo
             with self.lock_ipc_entrata:
                 if not self.ipc_entrata.empty():
-                    r = self.ricevi_segnale()
+                    #r = self.ricevi_segnale()
+                    self.ricevi_segnale()
             # Controlla segnali in entrata
             with self.lock_segnali_uscita:
                 if not self.coda_segnali_uscita.empty():
