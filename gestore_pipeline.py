@@ -9,7 +9,7 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 from multiprocessing import Queue,Lock
 from time            import time,sleep
-from logging         import info
+import logging
 #Framework
 from oggetto         import oggetto
 from gestore_segnali import gestore_segnali
@@ -55,7 +55,6 @@ class gestore_pipeline(oggetto):
         # TODO: controlla le impostazioni già scritte e inizializza le
         #       impostazioni mancanti
         self.lista_segnali                   = []
-
         # Dizionario con le operazioni da eseguire nell'ordine di esecuzione
         self.operazioni                      = {} # "nome": operazione
         # Dizionario con le code per le comunicazioni tra il Gestore Pipeline e
@@ -98,8 +97,6 @@ class gestore_pipeline(oggetto):
             # Aggiungi il segnale alla lista dei segnali
             if nome == "segnale":
                 self.lista_segnali.append(valore)
-        for impostazione in impostazioni:
-            nome,valore = impostazione
             # Aggiungi l'operazione alla pipeline
             if nome == "operazione":
                 # Inizializza le code e i lock *associati* all'operazione nel
@@ -132,6 +129,7 @@ class gestore_pipeline(oggetto):
                                        self.lock_ipc_uscita_operazioni[valore],
                                        self.ipc_entrata_operazioni[valore],
                                        self.lock_ipc_entrata_operazioni[valore])
+                sleep(0.01)
                 # Manda il segnale di avvio all'operazione.
                 # Lo manda due volte, perché il primo avvia il Gestore Segnali
                 # dell'operazione, il secondo avvia l'operazione vera e propria
@@ -151,24 +149,28 @@ class gestore_pipeline(oggetto):
         self.stop = 0
         ################ Fine inizializza le impostazioni ######################
     def idle(self):
-        info(type(self).__name__ + " idle")
+        logging.info(type(self).__name__ + " idle")
+        print("Gestore Pipeline Idle")
+        segnale = []
         # Attendi il segnale di avvio
         while True:
-            segnale = ""
+            segnale[:] = []
             # Segnala all'esterno che sei in idle
             with self.lock_segnali_uscita:
                 self.coda_segnali_uscita.put_nowait(["idle",""])
             ################# Ricevi messaggi dall'esterno #####################
             with self.lock_segnali_entrata:
                 if not self.coda_segnali_entrata.empty():
-                    segnale = self.coda_segnali_entrata.get_nowait()
+                    segnale[:] = self.coda_segnali_entrata.get_nowait()
             # Se non hai ricevuto nessun segnale
             if segnale[0] == "":
-                # Non fare niente e comincia direttamente il prossimo ciclo
+                with self.lock_segnali_uscita:
+                    self.coda_segnali_uscita.put_nowait(["Segnale vuoto",""])
                 sleep(0.01)
                 continue
             # Se hai ricevuto il segnale di stop
             elif segnale[0] == "stop":
+                self.coda_segnali_uscita.put_nowait(["terminato",""])
                 # Invia il segnale di stop anche al tuo Gestore Segnali
                 with self.lock_segnali_uscita:
                     self.coda_segnali_uscita.put_nowait(["stop", \
@@ -180,9 +182,14 @@ class gestore_pipeline(oggetto):
                 if segnale[0] in dir(self):
                     #Esegui il segnale
                     getattr(self,segnale[0])()
+                else:
+                    with self.lock_segnali_uscita:
+                        self.coda_segnali_uscita.put_nowait( \
+                                                      ["Segnale non valido",""])
             ############## Fine ricezione messaggi dall'esterno ################
     def avvia(self):
-        info(type(self).__name__ + " avviato")
+        logging.info(type(self).__name__ + " avviato")
+        print("Gestore Pipeline Avviato")
         while True:
             segnale = ""
             ################# Ricevi messaggi dall'esterno #####################

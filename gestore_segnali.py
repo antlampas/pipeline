@@ -219,7 +219,8 @@ class gestore_segnali(Process):
             if len(segnale_spacchettato) == 2:
                 self.segnale_uscita["segnale"],
                 self.segnale_uscita["destinatario"] = segnale_spacchettato
-                if segnale == "" and destinatario == "":
+                if self.segnale_uscita["segnale"] == "" and \
+                   self.segnale_uscita["destinatario"] == "":
                     segnale_spacchettato[:] = []
                     return 1
                 elif self.segnale_uscita["destinatario"] == \
@@ -237,7 +238,7 @@ class gestore_segnali(Process):
                 else:
                     pacchetto_segnale = str(self.segnale_uscita["segnale"]) \
                      + ":" + str(time()) + ":" + self.padre + ":" + \
-                     str(destinatario)
+                     str(self.segnale_uscita["destinatario"])
                     with self.lock_ipc_uscita:
                         if not self.ipc_uscita.full():
                             self.ipc_uscita.put_nowait(pacchetto_segnale)
@@ -249,9 +250,9 @@ class gestore_segnali(Process):
         info(self.padre + " Ricevi segnale")
         pacchetto_segnale = \
             self.segnale_entrata["segnale"] = \
-            self.segnale_entrata["timestamp"] = \
             self.segnale_entrata["mittente"] = \
-            self.segnale_entrata["destinatario"]
+            self.segnale_entrata["destinatario"] = ""
+        self.segnale_entrata["timestamp"] = 0
         segnale_spacchettato = []
         with self.lock_ipc_entrata:
             pacchetto_segnale = self.ipc_entrata.get_nowait()

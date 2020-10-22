@@ -45,9 +45,9 @@ class oggetto(Process):
                                                     self.coda_segnali_uscita,
                                                     self.lock_segnali_uscita)
         self.gestore_segnali.start()
-        with lock_ipc_uscita:
-            coda_ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + \
-                                                      type(self).__name__ + ":")
+        # with lock_ipc_uscita:
+        #     coda_ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + \
+        #                                               type(self).__name__ + ":")
         ################## Fine Inizializzazione oggetto #######################
     def run(self):
         self.idle()
