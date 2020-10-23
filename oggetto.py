@@ -9,7 +9,7 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 from multiprocessing import Process,Lock,Queue
 from gestore_segnali import gestore_segnali
-from time            import sleep,time
+from time            import time
 
 class oggetto(Process):
     """Oggetto
@@ -46,7 +46,10 @@ class oggetto(Process):
                                                     self.lock_segnali_uscita)
         self.gestore_segnali.start()
         print("Avvia Gestore Segnali")
-        segnale_avvio = ["avvia",str(time()),type(self).__name__,"gestore_segnali"]
+        segnale_avvio = ["avvia",
+                         str(time()),
+                         type(self).__name__,
+                         "gestore_segnali"]
         with self.lock_segnali_entrata:
             self.coda_segnali_entrata.put_nowait(segnale_avvio)
         ################## Fine Inizializzazione oggetto #######################
