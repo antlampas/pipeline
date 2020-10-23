@@ -171,23 +171,26 @@ class gestore_pipeline(oggetto):
                 continue
             # Se hai ricevuto il segnale di stop
             elif segnale[0] == "stop":
-                self.coda_segnali_uscita.put_nowait(["terminato",""])
-                # Invia il segnale di stop anche al tuo Gestore Segnali
                 with self.lock_segnali_uscita:
-                    self.coda_segnali_uscita.put_nowait(["stop", \
+                    self.coda_segnali_uscita.put_nowait(["terminato",""])
+                    # Invia il segnale di stop anche al tuo Gestore Segnali
+                    self.coda_segnali_uscita.put_nowait(["stop",
                                                          "gestore_segnali"])
-                # Termina segnalando l'uscita per segnale di stop
+                    # Termina segnalando l'uscita per segnale di stop
                 return int(-1)
             else:
                 # Se il segnale è tra i metodi riconosciuti dal Gestore Pipeline
                 if segnale[0] in dir(self):
                     #Esegui il segnale
-                    getattr(self,segnale[0])()
+                    s = getattr(self,segnale[0])()
+                    if s == -1:
+                        return s
                     sleep(0.01)
                 else:
                     with self.lock_segnali_uscita:
                         self.coda_segnali_uscita.put_nowait( \
-                                                      ["Segnale non valido",""])
+                                                          ["Segnale non valido",
+                                                           ""])
                     sleep(0.01)
             ############## Fine ricezione messaggi dall'esterno ################
     def avvia(self):

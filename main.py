@@ -82,12 +82,9 @@ with lock_ipc_uscita:
     ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + str(__name__) + ":")
 
 while True:
-    segnale_uscita_spacchettato[:] = []
-    segnale_uscita  = input("Segnale: ")
+    segnale_uscita  = ""
     segnale_entrata = ""
-    segnale = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
-    with lock_ipc_uscita:
-        ipc_uscita.put_nowait(segnale)
+    segnale_uscita_spacchettato[:] = []
     with lock_ipc_entrata:
         if not ipc_entrata.empty():
             segnale_entrata = ipc_entrata.get_nowait()
@@ -100,5 +97,11 @@ while True:
         print(timestamp)
         print(mittente)
         print(destinatario)
+        if segnale == "terminato": break
+    segnale_uscita = input("Segnale: ")
+    segnale = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
+    with lock_ipc_uscita:
+        ipc_uscita.put_nowait(segnale)
+    sleep(0.05)
 
 p.join()

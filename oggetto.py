@@ -51,7 +51,8 @@ class oggetto(Process):
             self.coda_segnali_entrata.put_nowait(segnale_avvio)
         ################## Fine Inizializzazione oggetto #######################
     def run(self):
-        self.idle()
+        s = self.idle()
+        if s == -1: return s
     def idle(self):
         pass
     def avvia(self):
