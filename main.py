@@ -81,10 +81,21 @@ print("Avviamento")
 with lock_ipc_uscita:
     ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + str(__name__) + ":")
 
+richiesta_stop = 0
 while True:
     segnale_uscita  = ""
     segnale_entrata = ""
     segnale_uscita_spacchettato[:] = []
+
+    if richiesta_stop == 1:
+        print("Salto ciclo")
+        salta_ciclo = 0
+        with lock_ipc_entrata:
+            if not ipc_entrata.empty():
+                segnale_entrata = ipc_entrata.get_nowait()
+        if segnale_entrata != "":
+            ipc_entrata.put_nowait(segnale_entrata)
+
     with lock_ipc_entrata:
         if not ipc_entrata.empty():
             segnale_entrata = ipc_entrata.get_nowait()
@@ -98,8 +109,18 @@ while True:
             print(timestamp)
             print(mittente)
             print(destinatario)
-            sleep(0.05)
-            continue
+            # if segnale == "terminando":
+            #     sleep(0.05)
+            #     continue
+            # elif segnale == "terminato":
+            #     break
+            # sleep(0.05)
+            # continue
+            if segnale == "terminato":
+                break
+            else:
+                sleep(0.05)
+                continue
         elif len(segnale_spacchettato) == 3:
              segnale,timestamp,mittente = segnale_spacchettato
              print(segnale_entrata)
@@ -107,14 +128,25 @@ while True:
              print(segnale)
              print(timestamp)
              print(mittente)
-             sleep(0.05)
-             continue
-        elif segnale == "terminando":
-            sleep(0.05)
-            continue
-        elif segnale == "terminato":
-            break
+             # if segnale == "terminando":
+             #     sleep(0.05)
+             #     continue
+             # elif segnale == "terminato":
+             #     break
+             # sleep(0.05)
+             # continue
+             if segnale == "terminato":
+                 break
+             else:
+                 sleep(0.05)
+                 continue
+        # if segnale == "terminando":
+        #     sleep(0.05)
+        #     continue
+        # elif segnale == "terminato":
+        #     break
     segnale_uscita = input("Segnale: ")
+    if segnale_uscita == "stop": richiesta_stop = 1
     segnale_u = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
     with lock_ipc_uscita:
         ipc_uscita.put_nowait(segnale_u)

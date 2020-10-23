@@ -177,7 +177,7 @@ class gestore_pipeline(oggetto):
                     self.coda_segnali_uscita.put_nowait(["stop",
                                                          "gestore_segnali"])
                     # Termina segnalando l'uscita per segnale di stop
-                return int(-1)
+                return -1
             else:
                 # Se il segnale è tra i metodi riconosciuti dal Gestore Pipeline
                 if segnale[0] in dir(self):
@@ -211,7 +211,7 @@ class gestore_pipeline(oggetto):
                 # Invia il segnale di stop anche al tuo Gestore Segnali
                 with self.lock_segnali_uscita:
                     self.coda_segnali_uscita.put_nowait( \
-                                                        ["terminando: " + \
+                                                        ["terminando:" + \
                                                             type(self).__name__,
                                                          ""])
                     self.coda_segnali_uscita.put_nowait( \
@@ -247,7 +247,7 @@ class gestore_pipeline(oggetto):
                         for operazione in self.operazioni:
                             with self.lock_segnali_uscita:
                                 self.coda_segnali_uscita.put_nowait( \
-                                              ["terminando: " + str(operazione),
+                                              ["terminando:" + str(operazione),
                                                ""])
                             with self.lock_segnali_uscita_operazioni[ \
                                                                     operazione]:

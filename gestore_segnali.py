@@ -83,7 +83,7 @@ class gestore_segnali(Process):
     def run(self):
         self.idle()
         if self.stop:
-            return int(-1)
+            return -1
     def idle(self):
         """Idle
 
@@ -171,6 +171,7 @@ class gestore_segnali(Process):
         with self.lock_ipc_uscita:
             self.ipc_uscita.put_nowait("terminato:" + str(time()) + ":" + \
                                                       type(self).__name__ + ":")
+        return -1
     def avvia(self):
         """Avvia
 
