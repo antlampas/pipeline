@@ -109,13 +109,6 @@ while True:
             print(timestamp)
             print(mittente)
             print(destinatario)
-            # if segnale == "terminando":
-            #     sleep(0.05)
-            #     continue
-            # elif segnale == "terminato":
-            #     break
-            # sleep(0.05)
-            # continue
             if segnale == "terminato":
                 break
             else:
@@ -128,23 +121,11 @@ while True:
              print(segnale)
              print(timestamp)
              print(mittente)
-             # if segnale == "terminando":
-             #     sleep(0.05)
-             #     continue
-             # elif segnale == "terminato":
-             #     break
-             # sleep(0.05)
-             # continue
              if segnale == "terminato":
                  break
              else:
                  sleep(0.05)
                  continue
-        # if segnale == "terminando":
-        #     sleep(0.05)
-        #     continue
-        # elif segnale == "terminato":
-        #     break
     segnale_uscita = input("Segnale: ")
     if segnale_uscita == "stop": richiesta_stop = 1
     segnale_u = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
