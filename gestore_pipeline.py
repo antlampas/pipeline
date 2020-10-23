@@ -210,8 +210,13 @@ class gestore_pipeline(oggetto):
             if segnale[0] == "stop":
                 # Invia il segnale di stop anche al tuo Gestore Segnali
                 with self.lock_segnali_uscita:
-                    self.coda_segnali_uscita.put_nowait(
-                                                     ["stop","gestore_segnali"])
+                    self.coda_segnali_uscita.put_nowait( \
+                                                        ["terminando: " + \
+                                                            type(self).__name__,
+                                                         ""])
+                    self.coda_segnali_uscita.put_nowait( \
+                                                        ["stop",
+                                                         "gestore_segnali"])
                 # Termina segnalando l'uscita per segnale di stop
                 return int(-1)
             elif segnale[0] != "":
@@ -244,7 +249,8 @@ class gestore_pipeline(oggetto):
                                 self.coda_segnali_uscita.put_nowait( \
                                               ["terminando: " + str(operazione),
                                                ""])
-                            with self.lock_segnali_uscita_operazioni[operazione]:
+                            with self.lock_segnali_uscita_operazioni[ \
+                                                                    operazione]:
                                 self.coda_segnali_uscita_operazioni[operazione].put_nowait([segnale_operazione[0],segnale_operazione[2]])
                             operazione.join()
                             with self.lock_segnali_uscita:
@@ -259,7 +265,8 @@ class gestore_pipeline(oggetto):
                 # Se il destinatario è una delle altre operazioni
                 elif segnale_operazione[2] in self.operazioni:
                     # Inoltra il segnale a quella specifica operazione
-                    with self.lock_segnali_uscita_operazioni[segnale_operazione[2]]:
+                    with self.lock_segnali_uscita_operazioni[ \
+                                                         segnale_operazione[2]]:
                         self.coda_segnali_uscita_operazioni[segnale_operazione[2]].put_nowait([segnale_operazione[0],segnale_operazione[2]])
                 # Se il destinatario è "broadcast"
                 elif segnale_operazione[2] == "":
@@ -268,7 +275,8 @@ class gestore_pipeline(oggetto):
                         if operazione == ogg:
                             continue
                         else:
-                            with self.lock_segnali_uscita_operazioni[operazione]:
+                            with self.lock_segnali_uscita_operazioni[ \
+                                                                    operazione]:
                                 self.coda_segnali_uscita_operazioni[operazione].put_nowait([segnale_operazione[0],segnale_operazione[2]])
             ############## Fine comunicazione con le operazioni ################
             sleep(0.01)

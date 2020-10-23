@@ -90,18 +90,34 @@ while True:
             segnale_entrata = ipc_entrata.get_nowait()
     if segnale_entrata != "":
         segnale_spacchettato = segnale_entrata.split(":")
-        segnale,timestamp,mittente,destinatario = segnale_spacchettato
-        print(segnale_entrata)
-        print(segnale_spacchettato)
-        print(segnale)
-        print(timestamp)
-        print(mittente)
-        print(destinatario)
-        if segnale == "terminato": break
+        if len(segnale_spacchettato) == 4:
+            segnale,timestamp,mittente,destinatario = segnale_spacchettato
+            print(segnale_entrata)
+            print(segnale_spacchettato)
+            print(segnale)
+            print(timestamp)
+            print(mittente)
+            print(destinatario)
+            sleep(0.05)
+            continue
+        elif len(segnale_spacchettato) == 3:
+             segnale,timestamp,mittente = segnale_spacchettato
+             print(segnale_entrata)
+             print(segnale_spacchettato)
+             print(segnale)
+             print(timestamp)
+             print(mittente)
+             sleep(0.05)
+             continue
+        elif segnale == "terminando":
+            sleep(0.05)
+            continue
+        elif segnale == "terminato":
+            break
     segnale_uscita = input("Segnale: ")
-    segnale = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
+    segnale_u = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
     with lock_ipc_uscita:
-        ipc_uscita.put_nowait(segnale)
+        ipc_uscita.put_nowait(segnale_u)
     sleep(0.05)
 
 p.join()
