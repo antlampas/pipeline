@@ -15,29 +15,6 @@ import readline
 
 from gestore_pipeline import gestore_pipeline
 
-##################################### DEBUG ####################################
-def inOut(lock_ipc_entrata,ipc_entrata,lock_ipc_uscita,ipc_uscita):
-    print("inOut")
-    segnale_entrata = ""
-    segnale_uscita = ""
-    segnale_uscita_spacchettato = []
-
-    while True:
-        with lock_ipc_entrata:
-            ipc_entrata.put_nowait(segnale_entrata)
-        with lock_ipc_uscita:
-            if not ipc_uscita.empty():
-                while not ipc_uscita.empty():
-                    segnale_uscita = ipc_uscita.get_nowait()
-                    segnale_uscita_spacchettato[:] = segnale_uscita.split(":")
-                    if segnale_uscita_spacchettato[0] == "stop":
-                        break
-                    print(segnale_uscita_spacchettato)
-                if segnale_uscita_spacchettato[0] == "stop":
-                    break
-            sleep(0.01)
-################################## FINE DEBUG ##################################
-
 ipc_entrata                 = Queue()
 lock_ipc_entrata            = Lock()
 ipc_uscita                  = Queue()
@@ -82,7 +59,7 @@ while True:
                 with lock_ipc_uscita:
                     ipc_uscita.put_nowait(pacchetto_segnale)
                 break
-            elif segnale == "avvia":
+            elif segnale == "avviato":
                 break
         elif len(segnale_spacchettato) == 3:
             segnale,timestamp,mittente = segnale_spacchettato
@@ -108,6 +85,7 @@ while True:
     segnale_uscita_spacchettato[:] = []
     segnale_uscita  = input("Segnale: ")
     segnale_entrata = ""
+    segnale = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
     with lock_ipc_uscita:
         ipc_uscita.put_nowait(segnale)
     with lock_ipc_entrata:

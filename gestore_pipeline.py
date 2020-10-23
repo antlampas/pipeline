@@ -151,13 +151,14 @@ class gestore_pipeline(oggetto):
     def idle(self):
         logging.info(type(self).__name__ + " idle")
         print("Gestore Pipeline Idle")
-        segnale = []
+        segnale = ["",]
+        # Segnala all'esterno che sei in idle
+        with self.lock_segnali_uscita:
+            if not self.coda_segnali_uscita.full():
+                self.coda_segnali_uscita.put_nowait(["idle",""])
         # Attendi il segnale di avvio
         while True:
-            segnale[:] = []
-            # Segnala all'esterno che sei in idle
-            with self.lock_segnali_uscita:
-                self.coda_segnali_uscita.put_nowait(["idle",""])
+            segnale[:] = ["",]
             ################# Ricevi messaggi dall'esterno #####################
             with self.lock_segnali_entrata:
                 if not self.coda_segnali_entrata.empty():
@@ -182,16 +183,22 @@ class gestore_pipeline(oggetto):
                 if segnale[0] in dir(self):
                     #Esegui il segnale
                     getattr(self,segnale[0])()
+                    sleep(0.01)
                 else:
                     with self.lock_segnali_uscita:
                         self.coda_segnali_uscita.put_nowait( \
                                                       ["Segnale non valido",""])
+                    sleep(0.01)
             ############## Fine ricezione messaggi dall'esterno ################
     def avvia(self):
         logging.info(type(self).__name__ + " avviato")
         print("Gestore Pipeline Avviato")
+        # Segnala all'esterno che sei avviato
+        with self.lock_segnali_uscita:
+            if not self.coda_segnali_uscita.full():
+                self.coda_segnali_uscita.put_nowait(["avviato",""])
         while True:
-            segnale = ""
+            segnale = ["",]
             ################# Ricevi messaggi dall'esterno #####################
             with self.lock_segnali_entrata:
                 if not self.coda_segnali_entrata.empty():
@@ -204,7 +211,7 @@ class gestore_pipeline(oggetto):
                                                      ["stop","gestore_segnali"])
                 # Termina segnalando l'uscita per segnale di stop
                 return int(-1)
-            elif segnale != "":
+            elif segnale[0] != "":
                 pass
             else:
                 pass
