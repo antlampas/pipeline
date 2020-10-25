@@ -88,7 +88,6 @@ while True:
     segnale_uscita_spacchettato[:] = []
 
     if richiesta_stop == 1:
-        print("Salto ciclo")
         salta_ciclo = 0
         with lock_ipc_entrata:
             if not ipc_entrata.empty():
