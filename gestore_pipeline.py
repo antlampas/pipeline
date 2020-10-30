@@ -10,6 +10,7 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 from multiprocessing import Queue,Lock
 from time            import time,sleep
 import logging
+
 #Framework
 from oggetto         import oggetto
 from gestore_segnali import gestore_segnali

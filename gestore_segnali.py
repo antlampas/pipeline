@@ -9,7 +9,6 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 
 from multiprocessing import Process
 from time            import sleep,time
-
 import logging
 
 class gestore_segnali(Process):

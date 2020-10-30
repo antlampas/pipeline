@@ -7,11 +7,9 @@ http://creativecommons.org/licenses/by/4.0/ or send a letter to Creative
 Commons, PO Box 1866, Mountain View, CA 94042, USA.
 """
 
-from multiprocessing  import Process,Lock,Queue
+from multiprocessing  import Lock,Queue
 from time             import time,sleep
 import logging
-import sys
-import readline
 
 from gestore_pipeline import gestore_pipeline
 
@@ -80,56 +78,5 @@ while True:
 print("Avviamento")
 with lock_ipc_uscita:
     ipc_uscita.put_nowait("avvia:" + str(time()) + ":" + str(__name__) + ":")
-
-richiesta_stop = 0
-while True:
-    segnale_uscita  = ""
-    segnale_entrata = ""
-    segnale_uscita_spacchettato[:] = []
-
-    if richiesta_stop == 1:
-        salta_ciclo = 0
-        with lock_ipc_entrata:
-            if not ipc_entrata.empty():
-                segnale_entrata = ipc_entrata.get_nowait()
-        if segnale_entrata != "":
-            ipc_entrata.put_nowait(segnale_entrata)
-
-    with lock_ipc_entrata:
-        if not ipc_entrata.empty():
-            segnale_entrata = ipc_entrata.get_nowait()
-    if segnale_entrata != "":
-        segnale_spacchettato = segnale_entrata.split(":")
-        if len(segnale_spacchettato) == 4:
-            segnale,timestamp,mittente,destinatario = segnale_spacchettato
-            print(segnale_entrata)
-            print(segnale_spacchettato)
-            print(segnale)
-            print(timestamp)
-            print(mittente)
-            print(destinatario)
-            if segnale == "terminato":
-                break
-            else:
-                sleep(0.05)
-                continue
-        elif len(segnale_spacchettato) == 3:
-             segnale,timestamp,mittente = segnale_spacchettato
-             print(segnale_entrata)
-             print(segnale_spacchettato)
-             print(segnale)
-             print(timestamp)
-             print(mittente)
-             if segnale == "terminato":
-                 break
-             else:
-                 sleep(0.05)
-                 continue
-    segnale_uscita = input("Segnale: ")
-    if segnale_uscita == "stop": richiesta_stop = 1
-    segnale_u = str(segnale_uscita) + ":" + str(time()) + ":" + "main" + ":"
-    with lock_ipc_uscita:
-        ipc_uscita.put_nowait(segnale_u)
-    sleep(0.05)
 
 p.join()
