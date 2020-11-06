@@ -44,7 +44,8 @@ class gestore_segnali(Process):
                  lock_segnali_entrata,
                  coda_segnali_uscita,
                  lock_segnali_uscita,
-                 controlla_destinatario=True):
+                 controlla_destinatario=True,
+                 inoltra=False):
         """Inizializza
 
         Inizializza le code per la comunicazione
@@ -68,7 +69,8 @@ class gestore_segnali(Process):
         self.padre                = str(padre)
         self.segnale_uscita       = {
                                      "segnale":      "",
-                                     "destinatario": "",
+                                     "mittente":     "",
+                                     "destinatario": ""
                                     }
         self.segnale_entrata      = {
                                      "segnale":      "",
@@ -76,12 +78,13 @@ class gestore_segnali(Process):
                                      "destinatario": "",
                                      "timestamp":    0
                                     }
-        # Flag per la richiesta di stop
+
         self.controlla_destinatario = controlla_destinatario
+        self.inoltra = inoltra
         ############### Fine Inizializzazione Gestore Segnali ##################
     def run(self):
         s = self.idle()
-        return s
+        return int(s)
     def idle(self):
         """Idle
 
@@ -133,13 +136,14 @@ class gestore_segnali(Process):
                     if self.segnale_uscita["segnale"] in dir(self):
                         # Esegui l'operazione
                         s = getattr(self,self.segnale_uscita["segnale"])()
+                        print("Gestore Segnali " + str(self.padre) + " terminato")
                         with self.lock_ipc_uscita:
                             self.ipc_uscita.put_nowait("terminato:" + \
                                                      str(time()) + \
                                                      ":" + \
                                                      type(self).__name__ + \
                                                      ":")
-                        return s
+                        return int(s)
                     # Se il segnale è la richiesta di stop
                 elif self.segnale_uscita["segnale"] == "stop":
                         with self.lock_ipc_uscita:
@@ -172,48 +176,92 @@ class gestore_segnali(Process):
             sleep(0.001)
     def invia_segnale(self):
         logging.info(self.padre + " Invia segnale")
-        pacchetto_segnale = ""
-        segnale_spacchettato = []
+        self.segnale_uscita["segnale"]      = \
+        self.segnale_uscita["destinatario"] = \
+        self.segnale_uscita["mittente"]     = ""
+        pacchetto_segnale                   = ""
+        segnale_spacchettato                = []
         # Preleva il segnale da inviare dalla Coda Segnali in Uscita
-        segnale_spacchettato[:] = self.coda_segnali_uscita.get_nowait()
+        segnale_spacchettato[:]          = self.coda_segnali_uscita.get_nowait()
         logging.info(segnale_spacchettato)
         # Controlla che il segnale sia ben formato
-        if len(segnale_spacchettato) == 2:
-            self.segnale_uscita["segnale"] = segnale_spacchettato[0]
-            self.segnale_uscita["destinatario"] = segnale_spacchettato[1]
-            if self.segnale_uscita["segnale"] == "" and \
-               self.segnale_uscita["destinatario"] == "":
-                segnale_spacchettato[:] = []
-                return 1
-            elif self.segnale_uscita["destinatario"] == \
-                 str(type(self).__name__):
-                if self.segnale_uscita["segnale"] == "stop":
-                    return int(-1)
-                else:
+        if self.inoltra:
+            if len(segnale_spacchettato) == 3:
+                print("Inoltra segnale")
+                self.segnale_uscita["segnale"] = segnale_spacchettato[0]
+                self.segnale_uscita["destinatario"] = segnale_spacchettato[1]
+                self.segnale_uscita["mittente"] = segnale_spacchettato[2]
+                if self.segnale_uscita["segnale"] == "" or \
+                   self.segnale_uscita["destinatario"] == self.padre:
                     pacchetto_segnale       = ""
                     segnale_spacchettato[:] = []
                     return 1
-            elif self.segnale_uscita["destinatario"] == self.padre:
-                pacchetto_segnale       = ""
-                segnale_spacchettato[:] = []
-                return 1
+                elif self.segnale_uscita["destinatario"] == \
+                                                       str(type(self).__name__):
+                    if self.segnale_uscita["segnale"] == "stop":
+                        return int(-1)
+                    else:
+                        pacchetto_segnale       = ""
+                        segnale_spacchettato[:] = []
+                        return 1
+                else:
+                    pacchetto_segnale = \
+                     str(self.segnale_uscita["segnale"]) + ":" + \
+                     str(time()) + ":" + \
+                     str(self.segnale_uscita["mittente"]) + ":" + \
+                     str(self.segnale_uscita["destinatario"])
+                    logging.info(pacchetto_segnale)
+                    self.ipc_uscita.put_nowait(pacchetto_segnale)
+                    return 0
             else:
-                pacchetto_segnale = \
-                 str(self.segnale_uscita["segnale"]) + ":" + \
-                 str(time()) + ":" + \
-                 str(self.padre) + ":" + \
-                 str(self.segnale_uscita["destinatario"])
-                logging.info(pacchetto_segnale)
-                self.ipc_uscita.put_nowait(pacchetto_segnale)
+                self.segnale_uscita["segnale"] = \
+                self.segnale_uscita["destinatario"] = \
+                self.segnale_uscita["mittente"] = ""
+                pacchetto_segnale = ""
+                segnale_spacchettato[:] = []
                 return 0
         else:
-            segnale_spacchettato[:] = []
-            return 0
+            if len(segnale_spacchettato) == 2:
+                self.segnale_uscita["segnale"] = segnale_spacchettato[0]
+                self.segnale_uscita["destinatario"] = segnale_spacchettato[1]
+                if self.segnale_uscita["segnale"] == "" and \
+                   self.segnale_uscita["destinatario"] == "":
+                    segnale_spacchettato[:] = []
+                    return 1
+                elif self.segnale_uscita["destinatario"] == \
+                     str(type(self).__name__):
+                    if self.segnale_uscita["segnale"] == "stop":
+                        return int(-1)
+                    else:
+                        pacchetto_segnale       = ""
+                        segnale_spacchettato[:] = []
+                        return 1
+                elif self.segnale_uscita["destinatario"] == self.padre:
+                    pacchetto_segnale       = ""
+                    segnale_spacchettato[:] = []
+                    return 1
+                else:
+                    pacchetto_segnale = \
+                     str(self.segnale_uscita["segnale"]) + ":" + \
+                     str(time()) + ":" + \
+                     str(self.padre) + ":" + \
+                     str(self.segnale_uscita["destinatario"])
+                    logging.info(pacchetto_segnale)
+                    self.ipc_uscita.put_nowait(pacchetto_segnale)
+                    return 0
+            else:
+                self.segnale_uscita["segnale"] = \
+                self.segnale_uscita["destinatario"] = \
+                self.segnale_uscita["mittente"] = ""
+                pacchetto_segnale = ""
+                segnale_spacchettato[:] = []
+                return 0
     def ricevi_segnale(self):
         logging.info(self.padre + " Ricevi segnale")
 
         pacchetto_segnale                    = ""
         segnale_spacchettato                 = []
+        self.mittente                        = ""
         self.segnale_entrata["segnale"]      = ""
         self.segnale_entrata["mittente"]     = ""
         self.segnale_entrata["destinatario"] = ""
@@ -221,14 +269,17 @@ class gestore_segnali(Process):
 
         # Inizia ricezione segnale
         pacchetto_segnale = self.coda_ipc_entrata.get_nowait()
+        logging.info(self.padre)
         logging.info(pacchetto_segnale)
         segnale_spacchettato[:] = pacchetto_segnale.split(":")
+        logging.info(self.padre)
         logging.info(segnale_spacchettato)
         if len(segnale_spacchettato) == 4:
             self.segnale_entrata["segnale"] = segnale_spacchettato[0]
             self.segnale_entrata["timestamp"] = segnale_spacchettato[1]
             self.segnale_entrata["mittente"] = segnale_spacchettato[2]
             self.segnale_entrata["destinatario"] = segnale_spacchettato[3]
+            logging.info("Gestore Segnali " + self.padre)
             logging.info(self.segnale_entrata["segnale"])
             logging.info(self.segnale_entrata["mittente"])
             logging.info(self.segnale_entrata["destinatario"])
@@ -237,6 +288,7 @@ class gestore_segnali(Process):
             self.segnale_entrata["segnale"] = segnale_spacchettato[0]
             self.segnale_entrata["timestamp"] = segnale_spacchettato[1]
             self.segnale_entrata["mittente"] = segnale_spacchettato[2]
+            logging.info("Gestore Segnali " + self.padre)
             logging.info(self.segnale_entrata["segnale"])
             logging.info(self.segnale_entrata["mittente"])
             logging.info(self.segnale_entrata["timestamp"])
@@ -246,10 +298,11 @@ class gestore_segnali(Process):
         if self.controlla_destinatario:
             if self.segnale_entrata["destinatario"] == self.padre or \
                self.segnale_entrata["destinatario"] == "":
+                logging.info("Gestore Segnali " + self.padre)
                 logging.info([self.segnale_entrata["segnale"],
-                self.segnale_entrata["mittente"],
-                self.segnale_entrata["destinatario"],
-                self.segnale_entrata["timestamp"]])
+                              self.segnale_entrata["mittente"],
+                              self.segnale_entrata["destinatario"],
+                              self.segnale_entrata["timestamp"]])
                 if not self.coda_segnali_entrata.full():
                     self.coda_segnali_entrata.put_nowait(
                         [self.segnale_entrata["segnale"],
@@ -260,14 +313,15 @@ class gestore_segnali(Process):
             else:
                 return 0
         else:
+            logging.info("Gestore Segnali " + self.padre)
             logging.info([self.segnale_entrata["segnale"],
-             self.segnale_entrata["mittente"],
-             self.segnale_entrata["destinatario"],
-             self.segnale_entrata["timestamp"]])
+                          self.segnale_entrata["mittente"],
+                          self.segnale_entrata["destinatario"],
+                          self.segnale_entrata["timestamp"]])
             if not self.coda_segnali_entrata.full():
-                self.coda_segnali_entrata.put_nowait(
-                    [self.segnale_entrata["segnale"],
-                     self.segnale_entrata["mittente"],
-                     self.segnale_entrata["destinatario"],
-                     self.segnale_entrata["timestamp"]])
+                self.coda_segnali_entrata.put_nowait( \
+                                           [self.segnale_entrata["segnale"],
+                                           self.segnale_entrata["mittente"],
+                                           self.segnale_entrata["destinatario"],
+                                           self.segnale_entrata["timestamp"]])
                 return 1

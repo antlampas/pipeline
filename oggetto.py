@@ -6,10 +6,10 @@ License. To view a copy of this license, visit
 http://creativecommons.org/licenses/by/4.0/ or send a letter to Creative
 Commons, PO Box 1866, Mountain View, CA 94042, USA.
 """
+import logging
 
 from multiprocessing import Process,Lock,Queue
 from gestore_segnali import gestore_segnali
-from time            import time
 
 class oggetto(Process):
     """Oggetto
@@ -25,10 +25,10 @@ class oggetto(Process):
                  lock_ipc_uscita):
         #################### Inizializzazione oggetto ##########################
         super().__init__()
+        self.impostazioni_in_aggiornamento = 0
         # Coda in cui il Gestore Segali mette i segnali ricevuti
         self.coda_segnali_entrata = Queue()
         self.lock_segnali_entrata = Lock()
-
         # Coda in cui l'oggetto mette i segnali da inviare all'esterno. È presa
         # in carico dal Gestore Segnali
         self.coda_segnali_uscita  = Queue()
@@ -45,17 +45,14 @@ class oggetto(Process):
                                                     self.coda_segnali_uscita,
                                                     self.lock_segnali_uscita)
         self.gestore_segnali.start()
-        print("Avvia Gestore Segnali")
-        segnale_avvio = ["avvia",
-                         str(time()),
-                         type(self).__name__,
-                         "gestore_segnali"]
-        with self.lock_segnali_entrata:
-            self.coda_segnali_entrata.put_nowait(segnale_avvio)
+        logging.info("Avvia Gestore Segnali")
+        segnale_avvio = ["avvia","gestore_segnali"]
+        with self.lock_segnali_uscita:
+            self.coda_segnali_uscita.put_nowait(segnale_avvio)
         ################## Fine Inizializzazione oggetto #######################
     def run(self):
         s = self.idle()
-        if s == -1: return s
+        return int(s)
     def idle(self):
         pass
     def avvia(self):
