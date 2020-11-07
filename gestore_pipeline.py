@@ -141,7 +141,6 @@ class gestore_pipeline(oggetto):
         # Avvia tutte le operazioni
         for nome,operazione in self.operazioni.items():
             operazione.start()
-        self.stop = 0
         ################ Fine inizializza le impostazioni ######################
     def idle(self):
         logging.info(type(self).__name__ + " idle")
@@ -281,6 +280,8 @@ class gestore_pipeline(oggetto):
                 with self.lock_segnali_uscita:
                     self.coda_segnali_uscita.put_nowait(["segnale mal formato",
                                                          ""])
+                logging.info("Gestore Pipeline: Segnale mal formato")
+                pacchetto_segnale_entrata[:] = []
                 sleep(0.1)
                 continue
 
@@ -327,6 +328,9 @@ class gestore_pipeline(oggetto):
                 elif len(pacchetto_segnale_entrata) == 3:
                     segnale,mittente,timestamp = pacchetto_segnale_entrata
                     pacchetto_segnale_entrata[:] = []
+                elif len(pacchetto_segnale_entrata) == 0:
+                    sleep(0.01)
+                    continue
                 else:
                     with self.lock_segnali_uscita:
                         self.coda_segnali_uscita.put_nowait( \
@@ -334,14 +338,16 @@ class gestore_pipeline(oggetto):
                     with lock_uscita:
                         coda_segnali_uscita.put_nowait(["segnale mal formato",
                                                         ""])
-                    sleep(0.1)
+                    logging.info("Gestore Pipeline: Segnale mal formato")
+                    pacchetto_segnale_entrata[:] = []
+                    sleep(0.01)
                     continue
                 logging.debug("Gestore Pipeline " + \
                               segnale       + " " + \
                               mittente      + " " + \
                               destinatario  + " " + \
                               str(timestamp))
-                sleep(0.2)
+                sleep(0.001)
                 print(segnale + " " + mittente + " " + destinatario + " " + timestamp)
                 # Se il destinatario è il Gestore Pipeline
                 if str(destinatario) == type(self).__name__:
@@ -363,8 +369,8 @@ class gestore_pipeline(oggetto):
                 elif str(destinatario) in self.operazioni:
                     print("Invia segnale a " + str(destinatario))
                     # Inoltra il segnale a quella specifica operazione
-                    with self.lock_segnali_uscita_operazioni[destinatario]:
-                        self.coda_segnali_uscita_operazioni[destinatario].put_nowait([segnale,destinatario,mittente])
+                    with self.lock_segnali_uscita_operazioni[str(destinatario)]:
+                        self.coda_segnali_uscita_operazioni[str(destinatario)].put_nowait([segnale,destinatario,mittente])
                 # Se il destinatario è "broadcast"
                 elif str(destinatario) == "":
                     print("Invia segnale in broadcast")
