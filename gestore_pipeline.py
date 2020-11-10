@@ -203,7 +203,6 @@ class gestore_pipeline(oggetto):
                 if segnale in dir(self):
                     #Esegui il segnale
                     s = getattr(self,segnale)()
-                    print(str(type(self).__name__) + " terminato")
                     return int(s)
                 else:
                     with self.lock_segnali_uscita:
@@ -348,7 +347,6 @@ class gestore_pipeline(oggetto):
                               destinatario  + " " + \
                               str(timestamp))
                 sleep(0.001)
-                print(segnale + " " + mittente + " " + destinatario + " " + timestamp)
                 # Se il destinatario è il Gestore Pipeline
                 if str(destinatario) == type(self).__name__:
                     if segnale == "stop":
@@ -367,14 +365,11 @@ class gestore_pipeline(oggetto):
                             self.coda_segnali_uscita_operazioni[ogg].put_nowait([ops,destinatario,mittente])
                 # Se il destinatario è una delle altre operazioni
                 elif str(destinatario) in self.operazioni:
-                    print("Invia segnale a " + str(destinatario))
                     # Inoltra il segnale a quella specifica operazione
                     with self.lock_segnali_uscita_operazioni[str(destinatario)]:
                         self.coda_segnali_uscita_operazioni[str(destinatario)].put_nowait([segnale,destinatario,mittente])
                 # Se il destinatario è "broadcast"
                 elif str(destinatario) == "":
-                    print("Invia segnale in broadcast")
-                    print([segnale,mittente,destinatario])
                     # Inoltra il segnale a tutte le altre operazioni
                     for operazione in self.operazioni:
                         if operazione == ogg:

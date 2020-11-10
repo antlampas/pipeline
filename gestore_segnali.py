@@ -12,6 +12,8 @@ from time            import sleep,time
 
 import logging
 
+ATTESA_CICLO_PRINCIPALE = 0.001
+
 class gestore_segnali(Process):
     """Gestore Segnali
 
@@ -116,7 +118,7 @@ class gestore_segnali(Process):
                     logging.info("Lunghezza: " + str(len(segnale_spacchettato)))
             if len(segnale_spacchettato) == 0:
                 # Se non è arrivato nessun segnale, salta al prossimo ciclo
-                sleep(0.01)
+                sleep(ATTESA_CICLO_PRINCIPALE)
                 continue
             if len(segnale_spacchettato) == 2:
                 # Se il segnale è formato da due parti, allora a posto
@@ -136,7 +138,6 @@ class gestore_segnali(Process):
                     if self.segnale_uscita["segnale"] in dir(self):
                         # Esegui l'operazione
                         s = getattr(self,self.segnale_uscita["segnale"])()
-                        print("Gestore Segnali " + str(self.padre) + " terminato")
                         with self.lock_ipc_uscita:
                             self.ipc_uscita.put_nowait("terminato:" + \
                                                      str(time()) + \
@@ -166,14 +167,14 @@ class gestore_segnali(Process):
             with self.lock_ipc_entrata:
                 if not self.coda_ipc_entrata.empty():
                      r = self.ricevi_segnale()
-            sleep(0.001)
+            sleep(ATTESA_CICLO_PRINCIPALE)
             # Controlla segnali in entrata
             with self.lock_segnali_uscita:
                 if not self.coda_segnali_uscita.empty():
                     i = self.invia_segnale()
             if (i == int(-1)) or (r == int(-1)):
                 return int(-1)
-            sleep(0.001)
+            sleep(ATTESA_CICLO_PRINCIPALE)
     def invia_segnale(self):
         logging.info(self.padre + " Invia segnale")
         self.segnale_uscita["segnale"]      = \
@@ -187,7 +188,6 @@ class gestore_segnali(Process):
         # Controlla che il segnale sia ben formato
         if self.inoltra:
             if len(segnale_spacchettato) == 3:
-                print("Inoltra segnale")
                 self.segnale_uscita["segnale"] = segnale_spacchettato[0]
                 self.segnale_uscita["destinatario"] = segnale_spacchettato[1]
                 self.segnale_uscita["mittente"] = segnale_spacchettato[2]
