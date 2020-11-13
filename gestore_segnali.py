@@ -61,12 +61,6 @@ class gestore_segnali(Process):
         # Coda per la comunicazione in uscita con i processi esterni
         self.ipc_uscita           = coda_ipc_uscita
         self.lock_ipc_uscita      = lock_ipc_uscita
-        # Coda per i segnali ricevuti. Comunicazione con il processo padre
-        self.coda_segnali_entrata = coda_segnali_entrata
-        self.lock_segnali_entrata = lock_segnali_entrata
-        # Coda per i segnali da inviare. Comunicatione con il padre
-        self.coda_segnali_uscita  = coda_segnali_uscita
-        self.lock_segnali_uscita  = lock_segnali_uscita
         # Nome dell'oggetto padre
         self.padre                = str(padre)
         self.segnale_uscita       = {
@@ -82,11 +76,8 @@ class gestore_segnali(Process):
                                     }
 
         self.controlla_destinatario = controlla_destinatario
-        self.inoltra = inoltra
+        self.inoltra                = inoltra
         ############### Fine Inizializzazione Gestore Segnali ##################
-    def run(self):
-        s = self.idle()
-        return int(s)
     def idle(self):
         """Idle
 
@@ -137,22 +128,16 @@ class gestore_segnali(Process):
                     # Gestore Segnali può interpretare
                     if self.segnale_uscita["segnale"] in dir(self):
                         # Esegui l'operazione
-                        s = getattr(self,self.segnale_uscita["segnale"])()
-                        with self.lock_ipc_uscita:
-                            self.ipc_uscita.put_nowait("terminato:" + \
-                                                     str(time()) + \
-                                                     ":" + \
-                                                     type(self).__name__ + \
-                                                     ":")
-                        return int(s)
-                    # Se il segnale è la richiesta di stop
+                        self.stato = self.segnale_uscita["segnale"]
+                        return 0
                 elif self.segnale_uscita["segnale"] == "stop":
+                    # Se il segnale è la richiesta di stop
                         with self.lock_ipc_uscita:
                             self.ipc_uscita.put_nowait("terminato:" + \
                                                        str(time()) + ":" + \
                                                        type(self).__name__ \
                                                        + ":")
-                        return int(-1)
+                        self.stato = "termina"
     def avvia(self):
         """Avvia
 
