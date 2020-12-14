@@ -27,10 +27,10 @@ class lettore_codice_a_barre(oggetto):
                          lock_ipc_entrata,
                          coda_ipc_uscita,
                          lock_ipc_uscita)
-        configurazione       = []
-        lista_configurazione = []
-        impostazioni         = []
-        self.attiva_terminatore = False
+        configurazione               = []
+        lista_configurazione         = []
+        impostazioni                 = []
+        self.attiva_terminatore      = False
         self.attiva_limite_caratteri = False
 
         with open(file_configurazione) as f:
@@ -94,8 +94,8 @@ class lettore_codice_a_barre(oggetto):
             else:
                 with self.lock_segnali_uscita:
                     if not self.coda_segnali_uscita.full():
-                        self.coda_segnali_uscita.put_nowait(["segnale mal formato",
-                                                             ""])
+                        self.coda_segnali_uscita.put_nowait( \
+                                                     ["segnale mal formato",""])
                 pacchetto_segnale_entrata[:] = []
                 sleep(ATTESA_CICLO_PRINCIPALE)
                 continue
