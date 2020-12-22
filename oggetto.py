@@ -10,6 +10,7 @@ import logging
 
 from multiprocessing import Process,Lock,Queue
 from gestore_segnali import gestore_segnali
+from contextlib import contextmanager
 
 class oggetto(Process):
     """Oggetto
