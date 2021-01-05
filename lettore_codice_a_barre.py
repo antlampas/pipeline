@@ -190,9 +190,10 @@ class lettore_codice_a_barre(oggetto):
             if self.richiesta_comando.is_pressed:
                 logging.info("In attesa del comando dal lettore codice a barre")
                 comando_letto = self.leggi_codice_a_barre()
+                logging.info(comando_letto)
                 if comando_letto != "":
                     comando = comando_letto.lower()
-                    if comando.find("aggiorna") >= 0:
+                    if comando.find("aggiorna") == 0:
                         logging.info("Richiesta aggiornamento configurazione")
                         # Estrapola il nome dell'operazione da aggiornare
                         ignora,operazione = comando.split(" ")
