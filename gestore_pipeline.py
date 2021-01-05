@@ -15,6 +15,10 @@ from time            import time,sleep
 from oggetto         import oggetto
 from gestore_segnali import gestore_segnali
 
+# Operazioni
+## Mettere qui le operazioni della pipeline
+
+ATTESA_CICLO_PRINCIPALE = 0.001
 
 class gestore_pipeline(oggetto):
     """Gestore Pipeline
@@ -34,6 +38,7 @@ class gestore_pipeline(oggetto):
                          lock_ipc_entrata,
                          coda_ipc_uscita,
                          lock_ipc_uscita)
+        logging.info(type(self).__name__ + " inizializzazione")
         ##### Inizializzazione comune a tutti gli oggetti del framework ########
         ##################### Lettura delle impostazioni #######################
         configurazione       = []
@@ -131,17 +136,32 @@ class gestore_pipeline(oggetto):
                     if not self.coda_segnali_uscita_operazioni[valore].full():
                         self.coda_segnali_uscita_operazioni[valore].put_nowait(["avvia","gestore_segnali"])
                 # Inizializza l'operazione nella coda delle operazioni
+
                 self.operazioni[valore] = globals()[valore](
                                        str(valore + ".conf"),
                                        self.ipc_uscita_operazioni[valore],
                                        self.lock_ipc_uscita_operazioni[valore],
                                        self.ipc_entrata_operazioni[valore],
                                        self.lock_ipc_entrata_operazioni[valore])
+                logging.info(self.operazioni[valore])
                 sleep(0.1)
         # Avvia tutte le operazioni
         for nome,operazione in self.operazioni.items():
+            logging.info(type(self).__name__ + " sta avviando " + nome)
             operazione.start()
         ################ Fine inizializza le impostazioni ######################
+        logging.info(type(self).__name__ + " inizializzato")
+    def run(self):
+        """Punto d'entrata del processo/thread"""
+        logging.info(type(self).__name__ + " creato")
+        # Entra nello stato richiesto
+        while True:
+            logging.info(type(self).__name__ + " entrando in " + self.stato)
+            s = getattr(self,self.stato)()
+            if isinstance(s,int):
+                if s != 0:
+                    break
+        return int(s)
     def idle(self):
         logging.info(type(self).__name__ + " idle")
 
@@ -170,8 +190,14 @@ class gestore_pipeline(oggetto):
             if len(pacchetto_segnale_entrata) == 4:
                 segnale,mittente,destinatario,timestamp = \
                                                        pacchetto_segnale_entrata
+                logging.info(type(self).__name__)
+                logging.info(pacchetto_segnale_entrata)
+                logging.info(segnale)
             elif len(pacchetto_segnale_entrata) == 3:
                 segnale,mittente,timestamp = pacchetto_segnale_entrata
+                logging.info(type(self).__name__)
+                logging.info(pacchetto_segnale_entrata)
+                logging.info(segnale)
             elif len(pacchetto_segnale_entrata) == 0:
                 pass
             else:
@@ -182,9 +208,6 @@ class gestore_pipeline(oggetto):
                 logging.info("Gestore Pipeline: Segnale mal formato")
                 pacchetto_segnale_entrata[:] = []
                 continue
-            logging.info(type(self).__name__)
-            logging.info(pacchetto_segnale_entrata)
-            logging.info(segnale)
             pacchetto_segnale_entrata[:] = []
             if segnale == "":
                 sleep(0.01)
@@ -233,6 +256,10 @@ class gestore_pipeline(oggetto):
                                                            str(time()) + ":" + \
                                                            type(self).__name__ \
                                                            + ":" + nome)
+        with self.lock_segnali_uscita:
+            if not self.coda_segnali_uscita.full():
+                self.coda_segnali_uscita.put_nowait(["pronto",""])
+
         while True:
             pacchetto_segnale_entrata[:] = []
             segnale                      = ""
@@ -247,8 +274,7 @@ class gestore_pipeline(oggetto):
                                                              str(operazione),
                                                              ""])
                     with self.lock_segnali_uscita_operazioni[operazione]:
-                        self.coda_segnali_uscita_operazioni[operazione].put_nowait(["stop",
-                                                                                    operazione])
+                        self.coda_segnali_uscita_operazioni[operazione].put_nowait(["stop",operazione])
                     with self.lock_segnali_uscita_operazioni[operazione]:
                         self.coda_segnali_uscita_operazioni[operazione].put_nowait(["stop","gestore_segnali"])
                     #self.operazioni[operazione].join()
@@ -352,7 +378,7 @@ class gestore_pipeline(oggetto):
                     if segnale == "stop":
                         richiesta_stop = True
                         break
-                    elif segnale == "lista_segnali":
+                    elif segnale == "lista_operazioni":
                         ops = ""
                         prima_operazione = 1
                         for op in self.operazioni:

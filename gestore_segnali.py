@@ -46,14 +46,15 @@ class gestore_segnali(Process):
                  lock_segnali_entrata,
                  coda_segnali_uscita,
                  lock_segnali_uscita,
-                 controlla_destinatario=True,
-                 inoltra=False):
+                 controlla_destinatario = True,
+                 inoltra                = False):
         """Inizializza
 
         Inizializza le code per la comunicazione
         """
 
         super().__init__()
+        logging.info(type(self).__name__ + " inizializzazione")
         ################## Inizializzazione Gestore Segnali ####################
         # Coda per la comunicazione in entrata con i processi esterni
         self.coda_ipc_entrata     = coda_ipc_entrata
@@ -61,8 +62,17 @@ class gestore_segnali(Process):
         # Coda per la comunicazione in uscita con i processi esterni
         self.ipc_uscita           = coda_ipc_uscita
         self.lock_ipc_uscita      = lock_ipc_uscita
+
+        self.coda_segnali_entrata = coda_segnali_entrata
+        self.lock_segnali_entrata = lock_segnali_entrata
+        self.coda_segnali_uscita  = coda_segnali_uscita
+        self.lock_segnali_uscita  = lock_segnali_uscita
+
         # Nome dell'oggetto padre
         self.padre                = str(padre)
+        # Stato iniziale
+        self.stato                = "idle"
+
         self.segnale_uscita       = {
                                      "segnale":      "",
                                      "mittente":     "",
@@ -77,7 +87,18 @@ class gestore_segnali(Process):
 
         self.controlla_destinatario = controlla_destinatario
         self.inoltra                = inoltra
+        logging.info(type(self).__name__ + " " + self.padre + " inizializzato")
         ############### Fine Inizializzazione Gestore Segnali ##################
+    def run(self):
+        """Punto d'entrata del processo/thread"""
+        # Entra nello stato richiesto
+        while True:
+            logging.info(type(self).__name__ + " " + self.padre + " entrando in " + self.stato)
+            s = getattr(self,self.stato)()
+            if isinstance(s,int):
+                if s != 0:
+                    break
+        return int(s)
     def idle(self):
         """Idle
 
@@ -85,7 +106,7 @@ class gestore_segnali(Process):
         in attesa di essere avviato.
         """
 
-        logging.info(type(self).__name__ + " " + self.padre + " " + "idle")
+        logging.info(type(self).__name__ + " " + self.padre + " idle")
         segnale_spacchettato = []
         # Semplicemente due variabili per "facilitare" la gestione del segnale
         self.segnale_uscita["segnale"]      = \
@@ -122,8 +143,7 @@ class gestore_segnali(Process):
             # Se la "parte segnale" del segnale sia stata definita
             if self.segnale_uscita["segnale"] != "":
                 # Se il segnale è indirizzato al Gestore Segnale
-                if self.segnale_uscita["destinatario"] == \
-                                                    type(self).__name__:
+                if self.segnale_uscita["destinatario"] == type(self).__name__:
                     # Esegui il segnale se è tra i segnali che il
                     # Gestore Segnali può interpretare
                     if self.segnale_uscita["segnale"] in dir(self):
