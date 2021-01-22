@@ -176,14 +176,14 @@ class oggetto(Process):
         elif len(pacchetto_segnale) == 3:
             segnale,mittente,timestamp = pacchetto_segnale
         elif len(pacchetto_segnale) == 0:
-            pass
+            return int(-2)
         else:
             with self.lock_segnali_uscita:
                 if not self.coda_segnali_uscita.full():
                     self.coda_segnali_uscita.put_nowait(["segnale mal formato",
                                                          ""])
         if segnale == "":
-            return int(-4)
+            return int(-3)
         elif segnale == "stop":
             with self.lock_segnali_uscita:
                 if not self.coda_segnali_uscita.full():
@@ -192,7 +192,7 @@ class oggetto(Process):
             return int(-1)
         else:
             return [segnale,mittente,destinatario,timestamp]
-    def invia_segnale(self,segnale,timeout=None):
+    def scrivi_segnale(self,segnale,timeout=None):
         """Lettura del segnale in uscita
         """
         stato = 0
