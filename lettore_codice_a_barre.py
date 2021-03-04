@@ -7,12 +7,16 @@ http://creativecommons.org/licenses/by/4.0/ or send a letter to Creative
 Commons, PO Box 1866, Mountain View, CA 94042, USA.
 """
 
-from oggetto import oggetto
 import logging
 import evdev
+import serial
+import os
+import shutil
+import re
 
 from time            import sleep,time
 from gpiozero        import LED,Button
+from oggetto         import oggetto
 
 ATTESA_CICLO_PRINCIPALE = 0.01
 
@@ -49,8 +53,16 @@ class lettore_codice_a_barre(oggetto):
                 linea = linea.strip()
                 opzione,valore = linea.split(" ")
                 if opzione == "device":
-                    self.device = evdev.InputDevice(valore)
-                    self.device.grab()
+                    if valore.find("/dev/input") >= 0:
+                        self.device = evdev.InputDevice(valore)
+                        self.device.grab()
+                    elif valore.find("/dev/tty") >= 0:
+                        self.NomeSeriale = str(valore)
+                        self.device      = serial.Serial(self.NomeSeriale)
+                    else:
+                        pass
+                elif opzione == "baudrate":
+                    self.baudrate = int(valore)
                 elif opzione == "pin_lettura":
                     self.leggi = LED(int(valore))
                     self.leggi.off()
@@ -79,6 +91,7 @@ class lettore_codice_a_barre(oggetto):
         timestamp                = 0
 
         comando                  = ""
+
         while True:
             ########################## Loop principale #########################
             ################# Ripristina variabili d'appoggio ##################
@@ -192,7 +205,8 @@ class lettore_codice_a_barre(oggetto):
                 comando_letto = self.leggi_codice_a_barre()
                 logging.info(comando_letto)
                 if comando_letto != "":
-                    comando = comando_letto.lower()
+                    comando_minuscolo = comando_letto.lower()
+                    comando = comando_minuscolo.replace("j","")
                     if comando.find("aggiorna") == 0:
                         logging.info("Richiesta aggiornamento configurazione")
                         # Estrapola il nome dell'operazione da aggiornare
@@ -244,6 +258,7 @@ class lettore_codice_a_barre(oggetto):
                             # lista delle operazioni
                             if mittente == "gestore_pipeline" and \
                                destinatario == str(type(self).__name__):
+                                logging.info(str(type(self).__name__ + " " + str(segnale)))
                                 lista_operazioni[:] = segnale.split(",")
                                 # Se l'operazione richiesta per l'aggiornamento è
                                 # tra le operazioni caricate nella pipeline,
@@ -251,28 +266,25 @@ class lettore_codice_a_barre(oggetto):
                                 # è valida
                                 if operazione in lista_operazioni:
                                     logging.info("Aggiornando " + operazione)
-                                    segnale_aggiornamento = \
-                                                    ["aggiorna",str(operazione)]
                                     with self.lock_segnali_uscita:
                                         if not self.coda_segnali_uscita.full():
                                             self.coda_segnali_uscita.put_nowait( \
-                                                          segnale_aggiornamento)
-                                    break
+                                                   ["aggiorna",str(operazione)])
                                     while True:
+                                        pacchetto_segnale_entrata[:] = []
+                                        segnale                      = ""
+                                        mittente                     = ""
+                                        destinatario                 = ""
+                                        timestamp                    = 0
                                         with self.lock_segnali_entrata:
                                             if not self.coda_segnali_entrata.empty():
                                                 pacchetto_segnale_entrata[:] = \
                                           self.coda_segnali_entrata.get_nowait()
                                         if len(pacchetto_segnale_entrata) == 4:
-                                            segnale,
-                                            mittente,
-                                            destinatario,
-                                            timestamp = pacchetto_segnale_entrata
+                                            segnale,mittente,destinatario,timestamp = pacchetto_segnale_entrata
                                             pacchetto_segnale_entrata[:] = []
                                         elif len(pacchetto_segnale_entrata) == 3:
-                                            segnale,
-                                            mittente,
-                                            destinatario = pacchetto_segnale_entrata
+                                            segnale,mittente,destinatario = pacchetto_segnale_entrata
                                             pacchetto_segnale_entrata[:] = []
                                         elif len(pacchetto_segnale_entrata) == 0:
                                             pass
@@ -281,42 +293,64 @@ class lettore_codice_a_barre(oggetto):
                                                 if not self.coda_segnali_uscita.full():
                                                     self.coda_segnali_uscita.put_nowait(["segnale mal formato",""])
                                             pacchetto_segnale_entrata[:] = []
-                                            sleep(0.01)
-                                            continue
-                                        impostazione = self.leggi_codice_a_barre(0.1)
-                                        if impostazione == "fine aggiornamento":
-                                            with self.lock_segnali_uscita:
-                                                if not self.coda_segnali_uscita.full():
-                                                    self.coda_segnali_uscita.put_nowait([str(impostazione),str(mittente)])
-                                            sleep(0.01)
+                                            sleep(ATTESA_CICLO_PRINCIPALE)
                                             continue
                                         if segnale == "pronto":
+                                            impostazione_letta = ""
+                                            impostazione       = ""
+                                            impostazione_letta = self.leggi_codice_a_barre()
+                                            impostazione       = impostazione_letta.lower().replace('j','')
+                                            while True:
+                                                with self.lock_segnali_entrata:
+                                                    if not self.coda_segnali_entrata.empty():
+                                                        self.coda_segnali_entrata.get_nowait()
+                                                    else:
+                                                        break
                                             with self.lock_segnali_uscita:
                                                 if not self.coda_segnali_uscita.full():
                                                     self.coda_segnali_uscita.put_nowait([str(impostazione),str(mittente)])
                                         elif segnale == "fine aggiornamento":
+                                            logging.info(str(type(self).__name__) + " " + mittente + ": aggiornamento finalizzato")
                                             with self.lock_segnali_uscita:
                                                 if not self.coda_segnali_uscita.full():
                                                     self.coda_segnali_uscita.put_nowait(["ok",str(mittente)])
                                             break
-                                        sleep(0.01)
+                                        sleep(ATTESA_CICLO_PRINCIPALE)
+                                    break
                                 else:
                                     with self.lock_segnali_uscita:
                                         if not self.coda_segnali_uscita.full():
                                             self.coda_segnali_uscita.put_nowait( \
                                            ["L'operazione richiesta non è presente",
                                             str(mittente)])
-                                        sleep(0.01)
+                                        sleep(ATTESA_CICLO_PRINCIPALE)
                                         if not self.coda_segnali_uscita.full():
                                             self.coda_segnali_uscita.put_nowait( \
                                                               ["fine aggiornamento",
                                                                str(mittente)])
-                                    break
+                    elif comando == "impostazioni fabbrica":
+                        logging.info("Reimpostando impostazioni di fabbrica")
+                        for f in os.listdir():
+                            logging.info(f)
+                            if f.endswith(".conf"):
+                                logging.info("Rimuovendo " + str(f))
+                                os.remove(str(f))
+                        for f in os.listdir():
+                            logging.info(f)
+                            if f.endswith(".default"):
+                                nome_file = str(f)
+                                i = nome_file.find(".default")
+                                nome_senza_estensione = nome_file[0:i]
+                                logging.info("Reimpostando " + nome_senza_estensione)
+                                shutil.copy(f,str(nome_senza_estensione) + ".conf")
+                                logging.info(nome_senza_estensione + " reimpostato")
+                                logging.info("Riavviando")
+                        os.system("sudo systemctl restart shotstation")
                     elif comando == "stop":
                         with self.lock_segnali_uscita:
                             if not self.coda_segnali_uscita.full():
                                 self.coda_segnali_uscita.put_nowait(["stop",""])
-                        sleep(0.01)
+                        sleep(ATTESA_CICLO_PRINCIPALE)
                         with self.lock_segnali_uscita:
                             if not self.coda_segnali_uscita.full():
                                 self.coda_segnali_uscita.put_nowait(["stop",
@@ -324,10 +358,16 @@ class lettore_codice_a_barre(oggetto):
                         return int(-1)
                     else:
                         logging.warn(comando + ": Comando non valido")
-                    comando = ""
+                    comando = comando_minuscolo = comando_letto = ""
             sleep(ATTESA_CICLO_PRINCIPALE)
             ###################### Fine Loop Principale ########################
     def leggi_codice_a_barre(self,to=0):
+        if isinstance(self.device,evdev.InputDevice):
+            codice = self.leggi_codice_a_barre_input_subsystem()
+        elif isinstance(self.device,serial.Serial):
+            codice = self.leggi_codice_a_barre_seriale()
+        return codice
+    def leggi_codice_a_barre_input_subsystem(self,to=0):
         tempo_precedente = 0
         intervallo       = 0
         codice           = ""
@@ -338,10 +378,10 @@ class lettore_codice_a_barre(oggetto):
         ultimo_carattere = ''
         codice = ""
         codici_validi = {
-                          0:   None,    1:  u'ESC',   2:  u'1',     3:  u'2',
+                          0:   None,     1:  u'ESC',  2:  u'1',     3:  u'2',
                           4:   u'3',     5: u'4',     6:  u'5',     7:  u'6',
                           8:   u'7',     9: u'8',     10: u'9',     11: u'0',
-                          12:  u'-',    13: u'=',     14: u'BKSP',  15: u'TAB',
+                          12:  u'_',    13: u'=',     14: u'BKSP',  15: u'TAB',
                           16:  u'Q',    17: u'W',     18: u'E',     19: u'R',
                           20:  u'T',    21: u'Y',     22: u'U',     23: u'I',
                           24:  u'O',    25: u'P',     26: u'[',     27: u']',
@@ -385,6 +425,7 @@ class lettore_codice_a_barre(oggetto):
                     codice = codice.replace("LALT","")
                     codice = codice.replace("RALT","")
                     codice = codice.replace("/","")
+                    codice = re.sub("[^a-zA-Z0-9_ ]","",codice).strip('J').strip('CLRF').strip('TAB')
                     self.leggi.off()
                     return codice
                 intervallo = time() - tempo_precedente
@@ -419,6 +460,25 @@ class lettore_codice_a_barre(oggetto):
                     codice = codice.replace("LALT","")
                     codice = codice.replace("RALT","")
                     codice = codice.replace("/","")
+                    codice = re.sub("[^a-zA-Z0-9_ ]","",codice).strip('J')
+                    if self.attiva_terminatore:
+                        codice = codice.strip(self.terminatore)
                     self.leggi.off()
                     return codice
         self.leggi.off()
+    def leggi_codice_a_barre_seriale(self,to=0):
+        codice = ""
+
+        self.leggi.on()
+        self.device.baudrate = self.baudrate
+        if not self.device.is_open:
+            self.device.open()
+        if self.device.is_open:
+            codice = str(self.device.readline())
+            self.device.close()
+        self.leggi.off()
+
+        codice = re.sub("[^a-zA-Z0-9_ ]","",codice)
+        if self.attiva_terminatore:
+            codice = codice.strip(self.terminatore).strip('b').strip('rn')
+        return codice
