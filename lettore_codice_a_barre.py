@@ -480,5 +480,5 @@ class lettore_codice_a_barre(oggetto):
 
         codice = re.sub("[^a-zA-Z0-9_ ]","",codice)
         if self.attiva_terminatore:
-            codice = codice.strip(self.terminatore).strip('b').strip('rn')
+            codice = str(codice.strip(self.terminatore).strip('b').strip('rn').encode("ascii")).strip('b\'').strip('\'')
         return codice
