@@ -319,6 +319,15 @@ class gestore_pipeline(oggetto):
                                                             type(self).__name__,
                                                          ""])
                 richiesta_stop = True
+            else:
+                if destinatario == "":
+                    for (ogg,lock_uscita),                               \
+                        (ogg,coda_segnali_uscita)                        \
+                        in                                               \
+                        zip(self.lock_segnali_uscita_operazioni.items(), \
+                        self.coda_segnali_uscita_operazioni.items()):
+                            with self.lock_segnali_uscita_operazioni[str(destinatario)]:
+                                self.coda_segnali_uscita_operazioni[str(destinatario)].put_nowait([segnale,destinatario,mittente])
 
             ############## Fine ricezione messaggi dall'esterno ################
             ########## Comunicazione con le operazioni della pipeline ##########
