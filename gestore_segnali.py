@@ -56,13 +56,13 @@ class gestore_segnali(Process):
         super().__init__()
         logging.info(type(self).__name__ + " inizializzazione")
         ################# Inizializzazione Gestore Segnali ####################
-        # Coda per la comunicazione in entrata con i processi esterni
+        # Interfaccia con i processi esterni
         self.coda_ipc_entrata     = coda_ipc_entrata
         self.lock_ipc_entrata     = lock_ipc_entrata
-        # Coda per la comunicazione in uscita con i processi esterni
-        self.ipc_uscita           = coda_ipc_uscita
+        self.coda_ipc_uscita      = coda_ipc_uscita
         self.lock_ipc_uscita      = lock_ipc_uscita
 
+        # Interfaccia con l'oggetto
         self.coda_segnali_entrata = coda_segnali_entrata
         self.lock_segnali_entrata = lock_segnali_entrata
         self.coda_segnali_uscita  = coda_segnali_uscita
@@ -70,23 +70,29 @@ class gestore_segnali(Process):
 
         # Nome dell'oggetto padre
         self.padre                = str(padre)
-        # Stato iniziale
-        self.stato                = "idle"
 
+        # Segnale in uscita attualmente gestito
         self.segnale_uscita       = {
                                      "segnale":      "",
                                      "mittente":     "",
                                      "destinatario": ""
                                     }
+        # Segnale in entrata attualmente gestito
         self.segnale_entrata      = {
                                      "segnale":      "",
                                      "mittente":     "",
                                      "destinatario": "",
                                      "timestamp":    0
                                     }
-
+        # Effettivamente un workaround: serve per dire al gestore segnali se
+        # deve inoltrare o meno i segnali che riceve ma non sono indirizzati
+        # all'oggetto
         self.controlla_destinatario = controlla_destinatario
         self.inoltra                = inoltra
+
+        # Stato iniziale
+        self.stato                = "idle"
+
         logging.info(type(self).__name__ + " " + self.padre + " inizializzato")
         ############## Fine Inizializzazione Gestore Segnali ##################
     def run(self):
@@ -114,7 +120,7 @@ class gestore_segnali(Process):
         self.segnale_uscita["destinatario"] = ""
 
         with self.lock_ipc_uscita:
-            self.ipc_uscita.put_nowait("idle:" + str(time())  + ":" + \
+            self.coda_ipc_uscita.put_nowait("idle:" + str(time())  + ":" + \
                                                 str(type(self).__name__) + ":")
         while True:
             # Ripulisci il Segnale Spacchettato e le variabili
@@ -155,7 +161,7 @@ class gestore_segnali(Process):
                 elif self.segnale_uscita["segnale"] == "stop":
                     # Se il segnale è la richiesta di stop
                         with self.lock_ipc_uscita:
-                            self.ipc_uscita.put_nowait("terminato:" + \
+                            self.coda_ipc_uscita.put_nowait("terminato:" + \
                                                        str(time()) + ":" + \
                                                        type(self).__name__ \
                                                        + ":")
@@ -218,7 +224,7 @@ class gestore_segnali(Process):
                      str(self.segnale_uscita["mittente"]) + ":" + \
                      str(self.segnale_uscita["destinatario"])
                     logging.info(pacchetto_segnale)
-                    self.ipc_uscita.put_nowait(pacchetto_segnale)
+                    self.coda_ipc_uscita.put_nowait(pacchetto_segnale)
                     return 0
             else:
                 self.segnale_uscita["segnale"] = \
@@ -254,7 +260,7 @@ class gestore_segnali(Process):
                      str(self.padre) + ":" + \
                      str(self.segnale_uscita["destinatario"])
                     logging.info(pacchetto_segnale)
-                    self.ipc_uscita.put_nowait(pacchetto_segnale)
+                    self.coda_ipc_uscita.put_nowait(pacchetto_segnale)
                     return 0
             else:
                 self.segnale_uscita["segnale"] = \
