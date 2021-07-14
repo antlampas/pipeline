@@ -1,6 +1,6 @@
 # pipeline
 
-Pipeline Framework
+Pipeline Framework Versione 1.0
 
 Autore: Francesco Antonetti Lamorgese Passeri
 This work is licensed under the Creative Commons Attribution 4.0 International
