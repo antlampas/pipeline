@@ -8,15 +8,14 @@ Commons, PO Box 1866, Mountain View, CA 94042, USA.
 """
 
 import logging
+
 from multiprocessing import Queue,Lock
 from time            import time,sleep
+from importlib       import import_module
 
 #Framework
 from oggetto         import oggetto
 from gestore_segnali import gestore_segnali
-
-# Operazioni
-## Mettere qui le operazioni della pipeline
 
 ATTESA_CICLO_PRINCIPALE = 0.001
 
@@ -108,6 +107,10 @@ class gestore_pipeline(oggetto):
             if nome == "operazione":
                 # Inizializza le code e i lock *associati* all'operazione nel
                 # Gestore Pipeline
+
+                # globals()[valore] = getattr(__import__(valore),valore)
+                globals()[valore] = getattr(import_module(valore),valore)
+
                 self.ipc_entrata_operazioni[valore]          = Queue()
                 self.lock_ipc_entrata_operazioni[valore]     = Lock()
                 self.ipc_uscita_operazioni[valore]           = Queue()
@@ -319,6 +322,15 @@ class gestore_pipeline(oggetto):
                                                             type(self).__name__,
                                                          ""])
                 richiesta_stop = True
+            else:
+                if destinatario == "":
+                    for (ogg,lock_uscita),                               \
+                        (ogg,coda_segnali_uscita)                        \
+                        in                                               \
+                        zip(self.lock_segnali_uscita_operazioni.items(), \
+                        self.coda_segnali_uscita_operazioni.items()):
+                            with self.lock_segnali_uscita_operazioni[str(ogg)]:
+                                self.coda_segnali_uscita_operazioni[str(ogg)].put_nowait([segnale,destinatario,mittente])
 
             ############## Fine ricezione messaggi dall'esterno ################
             ########## Comunicazione con le operazioni della pipeline ##########
