@@ -132,7 +132,6 @@ class oggetto(Process):
             else:
                 stato = int(-2)
         return stato
-    @contextmanager
     def lock_timeout(lock, timeout=1):
         """Implementazione del Lock con Timeout
         """
